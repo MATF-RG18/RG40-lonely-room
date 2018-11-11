@@ -79,13 +79,15 @@ static void on_display(void){
 	glPushMatrix();
 	
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glTranslatef(0, 0.5, 1);	
+	glRotatef(45, 0, 1, 0);
 	glBegin(GL_POLYGON);
 		glColor3f(0.5, 0.5, 1);
 		glVertex3f(0, 3, 1.5);
-        glVertex3f(0, 3, 2.5);
+		glVertex3f(0, 3, 2.5);
 		glVertex3f(0, 2, 2.5);
 		glVertex3f(0, 2, 1.5);
-    glEnd();
+	glEnd();	
 
 	glPopMatrix();
 
