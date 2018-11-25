@@ -8,7 +8,9 @@
 
 /* Dimenzije prozora */
 static int window_width, window_height;
-
+GLfloat dx = 0;
+GLfloat dy = 0;
+GLfloat dz = 0;
 
 /* OpenGL inicijalizacija */
 static void initialize(void); 
@@ -17,6 +19,9 @@ static void initialize(void);
 static void on_display(void);
 static void on_keyboard(unsigned char key, int x, int y);
 static void on_reshape(int width, int height);
+static void draw_walls();
+static void draw_object();
+static void draw_coordinate_system();
 
 int main(int argc, char **argv){
 
@@ -26,8 +31,8 @@ int main(int argc, char **argv){
 
 	
 	/* Kreiranje prozora */
-	glutInitWindowSize(600, 600);
-	glutInitWindowPosition(400, 100);
+	glutInitWindowSize(800, 800);
+	glutInitWindowPosition(300, 50);
 	glutCreateWindow("Lonely Room");
 
 	
@@ -64,45 +69,25 @@ static void on_display(void){
 	gluPerspective(
 		60, 
 		window_width/(float)window_height,
-		0, 50
+		1.5, 
+		20.0
 	);
 
-	/* Namestanje tacke pogleda */
+	/* Namestanje tacke pogleda kamere */
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	gluLookAt(
-		6, 6, 4,
+		4, 5, 6,
 		0, 0, 0,
 		0, 1, 0 
 	);
 
-	glPushMatrix();
-	
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	glTranslatef(0, 0.5, 1);	
-	glRotatef(45, 0, 1, 0);
-	glBegin(GL_POLYGON);
-		glColor3f(0.5, 0.5, 1);
-		glVertex3f(0, 3, 1.5);
-		glVertex3f(0, 3, 2.5);
-		glVertex3f(0, 2, 2.5);
-		glVertex3f(0, 2, 1.5);
-	glEnd();	
+	draw_walls();
+	draw_object();
+	draw_coordinate_system();	
 
-	glPopMatrix();
-
-	glBegin(GL_LINES);
-		glColor3f(1, 1, 1);
-
-		glVertex3f(0, 0, 0);
-		glVertex3f(10, 0, 0);
-
-		glVertex3f(0, 0, 0);
-		glVertex3f(0, 10, 0);
-	
-		glVertex3f(0, 0, 0);
-		glVertex3f(0, 0, 10);
-	glEnd();
+	glFlush();
+	glutPostRedisplay();
 
 	/* Slanje novog sadrzaja na ekran */
 	glutSwapBuffers();
@@ -114,6 +99,34 @@ static void on_keyboard(unsigned char key, int x, int y){
 		case 27:		
 			exit(0);
 			break;
+		case 'w':
+			if(dz - 0.1 < -1.7)
+				dz = dz;
+			else
+				dz = dz - 0.1;
+			glutPostRedisplay();
+			break;
+		case 's':
+			if(dz+0.1 > 1.5)
+				dz = dz;
+			else
+				dz = dz + 0.1;
+			glutPostRedisplay();
+			break;
+		case 'a':
+			if (dx - 0.1 < -1.6)
+				dx = dx;
+			else
+				dx = dx - 0.1;	
+			glutPostRedisplay();
+			break;
+		case 'd':
+			if (dx + 0.1 > 1.5)
+				dx = dx;
+			else
+				dx = dx + 0.1;
+			glutPostRedisplay();		
+			break;
 		default:
 			break;
 	}
@@ -121,19 +134,87 @@ static void on_keyboard(unsigned char key, int x, int y){
 
 static void initialize(void){
 	/* Boja pozadine prozora */
-	glClearColor(0.2, 0.2, 0.2, 0);
-
+	glClearColor(0, 0, 0, 0);
 	/* Trenutna debljina tacke */
 	GLfloat point_size;
 	glGetFloatv(GL_POINT_SIZE, &point_size);
 
 	/* Promena debljine tacke */
-	glPointSize(6);
-
+	glPointSize(10);
 	/* Promena debljine linije */
-	glLineWidth(50); 
-	
+	glLineWidth(10); 	
 	/* Podesavanje sablona na koji ce se iscrtavati linije */
     glEnable(GL_LINE_STIPPLE);
-	glLineStipple(1, 0x0101); 
+	glLineStipple(1, 0x0110); 
+}
+
+static void draw_walls(){
+	/* Iscrtavanje poda */
+	glColor3f(0.1, 0.1, 0.1);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glBegin(GL_POLYGON);
+		glVertex3f(2, 0, 2);
+		glVertex3f(2, 0, -2);
+		glVertex3f(-2, 0, -2);
+		glVertex3f(-2, 0, 2);
+	glEnd();
+
+	/* Iscrtavanje levog zida */
+	glColor3f(0.2, 0.2, 0.2);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glBegin(GL_POLYGON);
+		glVertex3f(-1.5, 0, 1.5);
+		glVertex3f(-1.5, 0, -1.5);
+		glVertex3f(-1.5, 1, -1.5);
+		glVertex3f(-1.5, 1, 1.5);
+	glEnd();
+	
+	/* Iscrtavanje prednjeg zida */
+	glColor3f(0.3, 0.3, 0.3);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glBegin(GL_POLYGON);
+		glVertex3f(-1.5, 0, -1.5);
+		glVertex3f(1.5, 0, -1.5);
+		glVertex3f(1.5, 1, -1.5);
+		glVertex3f(-1.5, 1, -1.5);
+	glEnd();
+
+	/* Iscrtavanje desnog zida */
+	glColor3f(0.4, 0.4, 0.4);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	glBegin(GL_POLYGON);
+		glVertex3f(1.5, 0, -1.5);
+		glVertex3f(1.5, 1, -1.5);
+		glVertex3f(1.5, 1, 1.5);
+		glVertex3f(1.5, 0, 1.5);
+	glEnd();
+}
+
+static void draw_object(){
+	/* Iscrtavanje kvadrata koji pomeram */
+	glColor3f(1, 1, 0);
+	glBegin(GL_QUADS);
+		glVertex3f(0+dx, 0, 0.1+dz);
+		glVertex3f(0+dx, 0.1, 0.1+dz);
+		glVertex3f(0.1+dx, 0.1, 0.1+dz);
+		glVertex3f(0.1+dx, 0, 0.1+dz);
+	glEnd();
+}
+
+static void draw_coordinate_system(){
+/* Iscrtavanje koordinatnih osa */
+	glEnable(GL_LINE_STIPPLE);
+	glBegin(GL_LINES);	
+		glColor3f(1, 0, 0);
+		glVertex3f(-5, 0, 0);
+		glVertex3f(20, 0, 0);
+
+		glColor3f(0, 1, 0);
+		glVertex3f(0, -5, 0);
+		glVertex3f(0, 20, 0);
+		
+		glColor3f(0, 0, 1);	
+		glVertex3f(0, 0, -5);
+		glVertex3f(0, 0, 20);
+	glEnd();
 }
