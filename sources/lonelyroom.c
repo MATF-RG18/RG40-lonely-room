@@ -12,10 +12,17 @@ http://www.lighthouse3d.com/tutorials/glut-tutorial/keyboard-example-moving-arou
 #include <stdio.h>
 #include <GL/glut.h>
 #include <math.h>
+#include "image.h"
+
+/* Imena fajlova sa teksturama. */
+#define FILENAME0 "wall.bmp"
+#define FILENAME1 "floor.bmp"
+
+/* Identifikatori tekstura. */
+static GLuint names[2];
 
 // ugao rotacije oko y ose, za pravac kamere
 float angleY = 0.0;
-
 // ugao rotacije oko x ose, za pravac kamere
 float angleX = 0.0;
 
@@ -32,7 +39,7 @@ float z = 3.0f;
 /* Dimenzije prozora */
 static int window_width, window_height;
 
-/* Pomeraji za kvadratic na w/a/s/d */
+/* Pomeraji za zuti kvadratic na w/a/s/d */
 GLfloat dx = 0;
 GLfloat dy = 0;
 GLfloat dz = 0;
@@ -74,7 +81,6 @@ int main(int argc, char **argv){
 	glutSpecialFunc(on_special_keys);
 	glutMouseFunc(on_mouse);
 	glutPassiveMotionFunc(on_mouse_motion);
-
 	
 	/* Ovo je bilo ukljuceno dok nisam skontala
 	 da je neefikasno i da treba samo da pozovem 
@@ -92,6 +98,9 @@ int main(int argc, char **argv){
 }
 
 static void init(void){
+
+	/* Objekat koji predstavlja teskturu ucitanu iz fajla. */
+    Image * image;
 
 	/* Boja pozadine prozora */
 	glClearColor(0, 0, 0.2, 0.5);
@@ -111,14 +120,67 @@ static void init(void){
 	//glEnable (GL_LIGHTING); 
     //glEnable (GL_LIGHT0); 
     glEnable (GL_COLOR_MATERIAL);
+    
+    /* Ukljucuju se teksture. */
+    glEnable(GL_TEXTURE_2D);
 
+    glTexEnvf(GL_TEXTURE_ENV,
+              GL_TEXTURE_ENV_MODE,
+              GL_REPLACE);
+              
+    /*
+     * Inicijalizuje se objekat koji ce sadrzati teksture ucitane iz
+     * fajla.
+     */
+    image = image_init(0, 0);
+
+    /* Kreira se prva tekstura. */
+    image_read(image, FILENAME0);
+
+    /* Generisu se identifikatori tekstura. */
+    glGenTextures(2, names);
+
+    glBindTexture(GL_TEXTURE_2D, names[0]);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+                 image->width, image->height, 0,
+                 GL_RGB, GL_UNSIGNED_BYTE, image->pixels);
+
+	/* Kreira se druga tekstura. */
+	image_read(image, FILENAME1);
+	
+    glBindTexture(GL_TEXTURE_2D, names[1]);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+                 image->width, image->height, 0,
+                 GL_RGB, GL_UNSIGNED_BYTE, image->pixels);             
+
+	/* Iskljucujemo aktivnu teksturu */
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    /* Unistava se objekat za citanje tekstura iz fajla. */
+    image_done(image);
 }
 
 static void on_reshape(int width, int height){
 	/* Pamcenje visine i sirine prozora */	
 	window_width = width;
 	window_height = height;
-	
+		
 	/* Namestanje viewport-a */
 	glViewport(0, 0, window_width, window_height);	
 }
@@ -149,10 +211,8 @@ static void on_display(void){
 	draw_walls();
 	draw_object();	
 	draw_coordinate_system();	
-
 	glEnable(GL_DEPTH_TEST);
-	
-	
+
 	glutPostRedisplay();
 
 	/* Slanje novog sadrzaja na ekran */
@@ -203,29 +263,50 @@ static void on_keyboard(unsigned char key, int x, int y){
 
 static void draw_walls(){
 	/* Iscrtavanje poda */
-	glColor3f(0.1, 0.1, 0.1);
+	glColor3f(0, 0, 0);
+	glBindTexture(GL_TEXTURE_2D, names[1]);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBegin(GL_POLYGON);
+		glNormal3f(0, 1, 0);
+		
+		glTexCoord2f(0, 0);
 		glVertex3f(5, 0, 5);
+	
+		glTexCoord2f(1, 0);
 		glVertex3f(5, 0, -5);
+		
+		glTexCoord2f(1, 1);
 		glVertex3f(-5, 0, -5);
+
+		glTexCoord2f(0, 1);
 		glVertex3f(-5, 0, 5);
 	glEnd();
 
 	/* Iscrtavanje levog zida */
-	glColor3f(0.2, 0.2, 0.2);
+	glBindTexture(GL_TEXTURE_2D, names[0]);
+	//glColor3f(0.2, 0.2, 0.2);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBegin(GL_POLYGON);
+		glNormal3f(1, 0, 0);
+		
+		glTexCoord2f(0, 0);
 		glVertex3f(-5, 0, 5);
+		
+		glTexCoord2f(1, 0);
 		glVertex3f(-5, 0, -5);
+		
+		glTexCoord2f(1, 1);
 		glVertex3f(-5, 3, -5);
+		
+		glTexCoord2f(0, 1);
 		glVertex3f(-5, 3, 5);
 	glEnd();
-	
+		
 	/* Iscrtavanje zadnjeg zida */
 	glColor3f(0.3, 0.3, 0.3);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBegin(GL_POLYGON);
+		glNormal3f(0, 0, 1);
 		glVertex3f(-5, 0, -5);
 		glVertex3f(5, 0, -5);
 		glVertex3f(5, 3, -5);
@@ -233,12 +314,22 @@ static void draw_walls(){
 	glEnd();
 
 	/* Iscrtavanje desnog zida */
-	glColor3f(0.4, 0.4, 0.4);
+	glBindTexture(GL_TEXTURE_2D, names[0]);
+//	glColor3f(0.4, 0.4, 0.4);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBegin(GL_POLYGON);
+		glNormal3f(-1, 0, 0);
+		
+		glTexCoord2f(0, 0);
 		glVertex3f(5, 0, -5);
+		
+		glTexCoord2f(0, 1);	
 		glVertex3f(5, 3, -5);
+		
+		glTexCoord2f(1, 1);
 		glVertex3f(5, 3, 5);
+		
+		glTexCoord2f(1, 0);
 		glVertex3f(5, 0, 5);
 	glEnd();
 
@@ -246,11 +337,16 @@ static void draw_walls(){
 	glColor3f(0.4, 0.8, 0.4);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glBegin(GL_POLYGON);
+		glNormal3f(0, 0, -1);
 		glVertex3f(-5, 0, 5);
 		glVertex3f(5, 0, 5);
 		glVertex3f(5, 3, 5);
 		glVertex3f(-5, 3, 5);
 	glEnd();
+	
+	/* Iskljucujemo aktivnu teksturu */
+    glBindTexture(GL_TEXTURE_2D, 0);
+
 }
 
 static void draw_object(){
@@ -310,6 +406,10 @@ static void on_special_keys(int key, int xx, int yy){
 	}
 }
 
+
+GLfloat mouse_x; 
+GLfloat mouse_y;
+
 static void on_mouse(int button, int state, int x, int y){
 	switch(button){
 	case GLUT_LEFT_BUTTON:
@@ -329,41 +429,38 @@ static void on_mouse(int button, int state, int x, int y){
 	}
 }
 
-GLfloat mouse_x= 0; 
-GLfloat mouse_y= 0;
-int is_first_time = 1;
 float sensitivity = 0.25;
 
 static void on_mouse_motion(int x, int y){
-	if( is_first_time ) {
-		is_first_time = 0;
-		mouse_x = 0;//(GLfloat) x;
-		mouse_y = 0;//(GLfloat) y;
-	}
-	//glutWarpPointer
-	//glutEntryFunc() == GLUT_LEFT)
- 
-	glutSetCursor(GLUT_CURSOR_CROSSHAIR);
-	GLfloat deltaX = mouse_x - x;
-	GLfloat deltaY = mouse_y - y;
+ //       printf("%g %g \n", mouse_x, mouse_y);
+	glutSetCursor(GLUT_CURSOR_CROSSHAIR); //NONE
+	GLfloat deltaX = x - mouse_x;
+	GLfloat deltaY = y - mouse_y;
 
-	// pozicija misa po X moze da ide od do 
-	// pozicija misa po Y moze da ide od do
-	if (deltaX < -6.0f)
+        // Da kad prvi put uleti, da ne cimne mnogo
+	if (deltaX < -10.0f)
 		deltaX = -10.0f;
-	if (deltaX > 6.0f)
+	if (deltaX > 10.0f)
 		deltaX = 10.0f;
-	if (deltaY < -6.0f)
+	if (deltaY < -10.0f)
 		deltaY = -10.0f;
-	if (deltaY > 6.0f)
+	if (deltaY > 10.0f)
 		deltaY = 10.0f;
+
 	angleY += deltaX*sensitivity;
 	angleX += deltaY*sensitivity;
-
+            
+        // Da ne okrece oko X ose 
+        // da stane kad podigne glavu/spusti glavu
+        if(angleX > 180*sensitivity)
+            angleX = 180*sensitivity;
+        if(angleX < -180*sensitivity)
+            angleX = -180*sensitivity;
+        
 	// u radijane prebacimo uglove
-	kx = cos(M_PI/180.0f*angleX)*cos(M_PI/180.0f*angleY);
-	ky = sin(M_PI/180.0f*angleX);
-	kz = -cos(M_PI/180.0f*angleX)*sin(M_PI/180.0f*angleY);
+	kx = cos(M_PI/180.0f*angleX)*sin(M_PI/180.0f*angleY);
+	ky = -sin(M_PI/180.0f*angleX);
+	kz = -cos(M_PI/180.0f*angleX)*cos(M_PI/180.0f*angleY);
     		
 	mouse_x = x;
 	mouse_y = y;
