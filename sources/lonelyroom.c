@@ -14,6 +14,8 @@
  * 
  */ 
 
+
+
 #include <stdio.h>
 #include <GL/glut.h>
 #include <math.h>
@@ -392,10 +394,10 @@ static void draw_coordinate_system(){
 }
 
 static void draw_cross(){
-    glColor3f(0, 1, 0);
-    glLineWidth(80);
-    glBegin(GL_POINTS);
-        glVertex3f(0+kx*4*10, 1+ky*4*10, 0+kz*4*10);
+    glColor3f(0, 0, 0);
+    glPointSize(5.0f);
+ 	glBegin(GL_POINTS);
+        glVertex3f(x+kx*100.0f/15.0f, 1+ky*100.0f/15.0f, z+kz*100.0f/15.0f);
     glEnd();
 }
 
@@ -405,14 +407,25 @@ static void on_special_keys(int key, int xx, int yy){
 
     switch(key){
         case GLUT_KEY_LEFT:
-            angleY -= 0.05f;
-            kx = sin(angleY);
-            kz = -cos(angleY);
+        	angleX = 0;
+        	angleY -= 1.0f;
+        	kx = cos(M_PI/180.0f*angleX)*sin(M_PI/180.0f*angleY);
+		    ky = -sin(M_PI/180.0f*angleX);
+		    kz = -cos(M_PI/180.0f*angleX)*cos(M_PI/180.0f*angleY);
+            //angleY -= 0.05f;
+			//kx = sin(angleY);
+			//kz = -cos(angleY);
             break;
         case GLUT_KEY_RIGHT:
-            angleY += 0.05f;
-            kx = sin(angleY);
-            kz = -cos(angleY);
+        	angleX = 0;
+        	angleY += 1.0f; 
+			kx = cos(M_PI/180.0f*angleX)*sin(M_PI/180.0f*angleY);
+		    ky = -sin(M_PI/180.0f*angleX);
+		    kz = -cos(M_PI/180.0f*angleX)*cos(M_PI/180.0f*angleY);
+        
+            //angleY += 0.05f;
+            //kx = sin(angleY);
+            //kz = -cos(angleY);
             break;
         case GLUT_KEY_UP :
             if (x > 4.9)
@@ -467,7 +480,7 @@ static void on_mouse(int button, int state, int x, int y){
 }
 
 /* Osetljivost misa, da ne leti po ekranu */
-float sensitivity = 0.3;
+float sensitivity = 0.15;
 
 /* Pozicija misa */
 GLfloat mouse_x; 
