@@ -14,16 +14,23 @@
  * 
  */ 
 
-
-
 #include <stdio.h>
 #include <GL/glut.h>
 #include <math.h>
+#include <time.h>
 #include "image.h"
 
 /* Imena fajlova sa teksturama. */
 #define FILENAME0 "wall.bmp"
 #define FILENAME1 "floor.bmp"
+
+#define TIMER_ID 0
+
+
+/* Konstanta pi */
+const static float pi = 3.141592653589793;
+
+static int timer_active;
 
 /* Identifikatori tekstura. */
 static GLuint names[2];
@@ -51,6 +58,8 @@ GLfloat dx = 0;
 GLfloat dy = 0;
 GLfloat dz = 0;
 
+int p = 0;
+
 /* OpenGL inicijalizacija */
 static void init(void); 
 
@@ -61,6 +70,7 @@ static void on_reshape(int width, int height);
 static void on_special_keys(int key, int xx, int yy);
 static void on_mouse(int button, int state, int x, int y);
 static void on_mouse_motion(int x, int y);
+static void on_timer(int value);
 
 /* Deklaracija lokalnih funkcija za objekte */
 static void draw_walls();
@@ -80,7 +90,7 @@ int main(int argc, char **argv){
     glutCreateWindow("Lonely Room");
     
     /* Uvek otvori preko celog prozora */
-    glutFullScreen();
+  //  glutFullScreen();
     
     /* Registracija callback funkcija za obradu dogadjaja*/
     glutDisplayFunc(on_display);
@@ -89,6 +99,11 @@ int main(int argc, char **argv){
     glutSpecialFunc(on_special_keys);
     glutMouseFunc(on_mouse);
     glutPassiveMotionFunc(on_mouse_motion);
+    
+    /* Inicijalizuje se seed za random brojeve */
+    srand(time(NULL));
+    
+    timer_active = 0;
     
     /* Ovo je bilo ukljuceno dok nisam skontala
         da je neefikasno i da treba samo da pozovem 
@@ -215,13 +230,13 @@ static void on_display(void){
                x+kx, 1.0f+ky, z+kz,
                0.0f, 1.0f, 0.0f
     );
-
+    
     glDisable(GL_DEPTH_TEST);
     draw_walls();
     draw_object();
     draw_coordinate_system();
 
-    glDisable(GL_LINE_STIPPLE); 
+    glDisable(GL_LINE_STIPPLE);
     draw_cross();
     glEnable(GL_LINE_STIPPLE); 
 
@@ -240,14 +255,30 @@ static void on_keyboard(unsigned char key, int x, int y){
         case 27:
             exit(0);
             break;
+
+        /* Pokrece se rotiranje sfere */
+        case 'g':
+        case 'G':
+            if(!timer_active){
+                glutTimerFunc(50, on_timer, TIMER_ID);
+                timer_active = 1;
+            }
+            break;
+        
+        /* Zaustavlja se rotacija sfere. */    
+        case 's':
+        case 'S':
+            timer_active = 0;
+            break;
             
-        case 32: // SPACE
+        /* 32 je space */    
+        case 32: 
             dy = dy + 1;
             break;
         case 'q':
             dy = dy - 1;
             break;
-        case 'w':
+        /*case 'w':
             if(dz - 0.1 < -5.1)
                 dz = dz;
             else
@@ -270,7 +301,7 @@ static void on_keyboard(unsigned char key, int x, int y){
                 dx = dx;
             else
                 dx = dx + 0.1;
-            break;
+            break;*/
         default:
             break;
     }
@@ -285,16 +316,16 @@ static void draw_walls(){
         glNormal3f(0, 1, 0);
         
         glTexCoord2f(0, 0);
-        glVertex3f(5, 0, 5);
+        glVertex3f(8, 0, 8);
         
         glTexCoord2f(1, 0);
-        glVertex3f(5, 0, -5);
+        glVertex3f(8, 0, -8);
     
         glTexCoord2f(1, 1);
-        glVertex3f(-5, 0, -5);
+        glVertex3f(-8, 0, -8);
 
         glTexCoord2f(0, 1);
-        glVertex3f(-5, 0, 5);
+        glVertex3f(-8, 0, 8);
     glEnd();
 
     /* Iscrtavanje levog zida */
@@ -305,16 +336,16 @@ static void draw_walls(){
         glNormal3f(1, 0, 0);
             
         glTexCoord2f(0, 0);
-        glVertex3f(-5, 0, 5);
+        glVertex3f(-8, 0, 8);
             
         glTexCoord2f(1, 0);
-        glVertex3f(-5, 0, -5);
+        glVertex3f(-8, 0, -8);
             
         glTexCoord2f(1, 1);
-        glVertex3f(-5, 3, -5);
+        glVertex3f(-8, 4, -8);
         
         glTexCoord2f(0, 1);
-        glVertex3f(-5, 3, 5);
+        glVertex3f(-8, 4, 8);
     glEnd();
     
     /* Iscrtavanje zadnjeg zida */
@@ -322,10 +353,10 @@ static void draw_walls(){
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glBegin(GL_POLYGON);
         glNormal3f(0, 0, 1);
-        glVertex3f(-5, 0, -5);
-        glVertex3f(5, 0, -5);
-        glVertex3f(5, 3, -5);
-        glVertex3f(-5, 3, -5);
+        glVertex3f(-8, 0, -8);
+        glVertex3f(8, 0, -8);
+        glVertex3f(8, 4, -8);
+        glVertex3f(-8, 4, -8);
     glEnd();
 
     /* Iscrtavanje desnog zida */
@@ -336,16 +367,16 @@ static void draw_walls(){
         glNormal3f(-1, 0, 0);
             
         glTexCoord2f(0, 0);
-        glVertex3f(5, 0, -5);
+        glVertex3f(8, 0, -8);
             
-        glTexCoord2f(0, 1);	
-        glVertex3f(5, 3, -5);
+        glTexCoord2f(0, 1);
+        glVertex3f(8, 4, -8);
             
         glTexCoord2f(1, 1);
-        glVertex3f(5, 3, 5);
+        glVertex3f(8, 4, 8);
         
         glTexCoord2f(1, 0);
-        glVertex3f(5, 0, 5);
+        glVertex3f(8, 0, 8);
     glEnd();
 
     /* Iscrtavanje prednjeg zida */
@@ -353,10 +384,10 @@ static void draw_walls(){
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glBegin(GL_POLYGON);
         glNormal3f(0, 0, -1);
-        glVertex3f(-5, 0, 5);
-        glVertex3f(5, 0, 5);
-        glVertex3f(5, 3, 5);
-        glVertex3f(-5, 3, 5);
+        glVertex3f(-8, 0, 8);
+        glVertex3f(8, 0, 8);
+        glVertex3f(8, 4, 8);
+        glVertex3f(-8, 4, 8);
     glEnd();
     
     /* Iskljucujemo aktivnu teksturu */
@@ -365,14 +396,28 @@ static void draw_walls(){
 }
 
 static void draw_object(){
-    /* Iscrtavanje kvadrata koji pomeram */
-    glColor3f(1, 1, 0);
-    glBegin(GL_QUADS);
-        glVertex3f(0+dx, 0+dy, 0.1+dz);
-        glVertex3f(0+dx, 0.1+dy, 0.1+dz);
-        glVertex3f(0.1+dx, 0.1+dy, 0.1+dz);
-        glVertex3f(0.1+dx, 0+dy, 0.1+dz);
-    glEnd();
+    
+     glPushMatrix();
+        glColor3f(0, 0, 0);
+        glTranslatef(7, 0.5, -7.5);
+        glScalef(2, 1, 1);
+        glutSolidCube(1.0f);
+    glPopMatrix();
+    
+    glPushMatrix();
+        glRotatef(p, 0, 1, 0);
+        glTranslatef(0, 0.5, 0);
+        
+        glColor3f(0.1, 0.5, 0.5);
+        /*glBegin(GL_QUADS);
+            glVertex3f(0+dx, 0+dy, 0.1+dz);
+            glVertex3f(0+dx, 0.1+dy, 0.1+dz);
+            glVertex3f(0.1+dx, 0.1+dy, 0.1+dz);
+            glVertex3f(0.1+dx, 0+dy, 0.1+dz);
+        glEnd();*/
+        
+        glutSolidSphere(0.5f, 50, 50);
+    glPopMatrix();
 }
 
 static void draw_coordinate_system(){
@@ -387,7 +432,7 @@ static void draw_coordinate_system(){
         glVertex3f(0, -5, 0);
         glVertex3f(0, 20, 0);
     
-        glColor3f(0, 0, 1);	
+        glColor3f(0, 0, 1);
         glVertex3f(0, 0, -5);
         glVertex3f(0, 0, 20);
     glEnd();
@@ -396,7 +441,7 @@ static void draw_coordinate_system(){
 static void draw_cross(){
     glColor3f(0, 0, 0);
     glPointSize(5.0f);
- 	glBegin(GL_POINTS);
+    glBegin(GL_POINTS);
         glVertex3f(x+kx*100.0f/15.0f, 1+ky*100.0f/15.0f, z+kz*100.0f/15.0f);
     glEnd();
 }
@@ -407,49 +452,49 @@ static void on_special_keys(int key, int xx, int yy){
 
     switch(key){
         case GLUT_KEY_LEFT:
-        	angleX = 0;
-        	angleY -= 1.0f;
-        	kx = cos(M_PI/180.0f*angleX)*sin(M_PI/180.0f*angleY);
-		    ky = -sin(M_PI/180.0f*angleX);
-		    kz = -cos(M_PI/180.0f*angleX)*cos(M_PI/180.0f*angleY);
+            angleX = 0;
+            angleY -= 1.0f;
+            kx = cos(M_PI/180.0f*angleX)*sin(M_PI/180.0f*angleY);
+            ky = -sin(M_PI/180.0f*angleX);
+            kz = -cos(M_PI/180.0f*angleX)*cos(M_PI/180.0f*angleY);
             //angleY -= 0.05f;
-			//kx = sin(angleY);
-			//kz = -cos(angleY);
+            //kx = sin(angleY);
+            //kz = -cos(angleY);
             break;
         case GLUT_KEY_RIGHT:
-        	angleX = 0;
-        	angleY += 1.0f; 
-			kx = cos(M_PI/180.0f*angleX)*sin(M_PI/180.0f*angleY);
-		    ky = -sin(M_PI/180.0f*angleX);
-		    kz = -cos(M_PI/180.0f*angleX)*cos(M_PI/180.0f*angleY);
+            angleX = 0;
+            angleY += 1.0f; 
+            kx = cos(M_PI/180.0f*angleX)*sin(M_PI/180.0f*angleY);
+            ky = -sin(M_PI/180.0f*angleX);
+            kz = -cos(M_PI/180.0f*angleX)*cos(M_PI/180.0f*angleY);
         
             //angleY += 0.05f;
             //kx = sin(angleY);
             //kz = -cos(angleY);
             break;
         case GLUT_KEY_UP :
-            if (x > 4.9)
-                x = x-0.01*0.2;
-            else if (z < -4.9)
-                z = z + 0.01*0.2;
-            else if (z > 4.9)
-                z = z - 0.01*0.2;
-            else if (x < -4.9)
-                x = x + 0.01*0.2;
+            if (x > 7.9)
+                x = x-0.005;
+            else if (z < -7.9)
+                z = z + 0.05;
+            else if (z > 7.9)
+                z = z - 0.05;
+            else if (x < -7.9)
+                x = x + 0.05;
             else{
                 x += kx * fraction;
                 z += kz * fraction;
             }
             break;
             case GLUT_KEY_DOWN:
-            if (x < -4.9)
-                x = x + 0.01*0.2;
-            else if( z > 4.9)
-                z = z - 0.01*0.2;
-            else if (z < -4.9)
-                z = z + 0.01*0.2;
-            else if (x > 4.9)
-                x = x - 0.01*0.2;
+            if (x < -7.9)
+                x = x + 0.05;
+            else if( z > 7.9)
+                z = z - 0.05;
+            else if (z < -7.9)
+                z = z + 0.05;
+            else if (x > 7.9)
+                x = x - 0.05;
             else{
                 x -= kx * fraction;
                 z -= kz * fraction;
@@ -480,7 +525,7 @@ static void on_mouse(int button, int state, int x, int y){
 }
 
 /* Osetljivost misa, da ne leti po ekranu */
-float sensitivity = 0.15;
+float sensitivity = 0.5;
 
 /* Pozicija misa */
 GLfloat mouse_x; 
@@ -508,18 +553,40 @@ static void on_mouse_motion(int x, int y){
     if (deltaY > 6.0f)
         deltaY = 6.0f;
 
-    angleY += deltaX*sensitivity;
-    angleX += deltaY*sensitivity;
-            
-    // Da ne okrece oko X ose 
-    // da stane kad podigne glavu/spusti glavu
-    if(angleX > 180*sensitivity)
-        angleX = 180*sensitivity;
-    if(angleX < -180*sensitivity)
-        angleX = -180*sensitivity;
-        
+    angleY += deltaX;
+    angleX += deltaY;
+    
+   	/* Brinem o tome da uglovi budu u svojim granicama */
+    if(angleY > 360.0)
+    	angleY -= 360.0;
+    if(angleY < -360.0)
+    	angleY += 360.0;
+    
+    if(angleX > 89.0)
+    	angleX = 89.9;
+    if(angleX < -89.0)
+    	angleX = -89.0; 
+                    
     // u radijane prebacimo uglove i radimo sa sfernim koordinatama 
-    kx = cos(M_PI/180.0f*angleX)*sin(M_PI/180.0f*angleY);
-    ky = -sin(M_PI/180.0f*angleX);
-    kz = -cos(M_PI/180.0f*angleX)*cos(M_PI/180.0f*angleY);
+    kx = cos(pi/180.0f*angleX*sensitivity)*sin(pi/180.0f*angleY*sensitivity);
+    ky = -sin(pi/180.0f*angleX*sensitivity);
+    kz = -cos(pi/180.0f*angleX*sensitivity)*cos(pi/180.0f*angleY*sensitivity);
+
+}
+
+static void on_timer(int value){
+    if (value != TIMER_ID)
+        return;
+    
+    printf("%d \n", p);
+    if(p >= 360)
+        p -= 360;
+    p += 3;
+    
+    /* Forsira se iscrtavanje prozora. */
+    glutPostRedisplay();
+
+    /* Po potrebi se ponovo postavlja tajmer. */
+    if (timer_active)
+        glutTimerFunc(50, on_timer, 0);
 }
