@@ -90,7 +90,7 @@ int main(int argc, char **argv){
     glutCreateWindow("Lonely Room");
     
     /* Uvek otvori preko celog prozora */
-  //  glutFullScreen();
+    glutFullScreen();
     
     /* Registracija callback funkcija za obradu dogadjaja*/
     glutDisplayFunc(on_display);
@@ -556,16 +556,16 @@ static void on_mouse_motion(int x, int y){
     angleY += deltaX;
     angleX += deltaY;
     
-   	/* Brinem o tome da uglovi budu u svojim granicama */
-    if(angleY > 360.0)
-    	angleY -= 360.0;
-    if(angleY < -360.0)
-    	angleY += 360.0;
+    /* Brinem o tome da uglovi budu u svojim granicama */
+    if(angleY > 360.0*1/sensitivity)
+        angleY -= 360.0*1/sensitivity;
+    if(angleY < -360.0*1/sensitivity)
+        angleY += 360.0*1/sensitivity;
     
-    if(angleX > 89.0)
-    	angleX = 89.9;
-    if(angleX < -89.0)
-    	angleX = -89.0; 
+    if(angleX > 89.0*1/sensitivity)
+        angleX = 89.0*1/sensitivity;
+    if(angleX < -89.0*1/sensitivity)
+        angleX = -89.0*1/sensitivity; 
                     
     // u radijane prebacimo uglove i radimo sa sfernim koordinatama 
     kx = cos(pi/180.0f*angleX*sensitivity)*sin(pi/180.0f*angleY*sensitivity);
@@ -590,3 +590,4 @@ static void on_timer(int value){
     if (timer_active)
         glutTimerFunc(50, on_timer, 0);
 }
+
