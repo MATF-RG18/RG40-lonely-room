@@ -449,24 +449,24 @@ static void draw_cross(){
 static void on_special_keys(int key, int xx, int yy){
     /* Definise brzinu pomeraja (u mom slucaju kamere)*/	
     float fraction = 0.1f;
-
+    
     switch(key){
         case GLUT_KEY_LEFT:
-            angleX = 0;
-            angleY -= 1.0f;
-            kx = cos(M_PI/180.0f*angleX)*sin(M_PI/180.0f*angleY);
-            ky = -sin(M_PI/180.0f*angleX);
-            kz = -cos(M_PI/180.0f*angleX)*cos(M_PI/180.0f*angleY);
+            angleX = angleX;
+            angleY -= 4.0f;
+            kx = cos(pi/180.0f*angleX*0.2)*sin(pi/180.0f*angleY*0.2);
+            ky = -sin(pi/180.0f*angleX*0.2);
+            kz = -cos(pi/180.0f*angleX*0.2)*cos(pi/180.0f*angleY*0.2);
             //angleY -= 0.05f;
             //kx = sin(angleY);
             //kz = -cos(angleY);
             break;
         case GLUT_KEY_RIGHT:
-            angleX = 0;
-            angleY += 1.0f; 
-            kx = cos(M_PI/180.0f*angleX)*sin(M_PI/180.0f*angleY);
-            ky = -sin(M_PI/180.0f*angleX);
-            kz = -cos(M_PI/180.0f*angleX)*cos(M_PI/180.0f*angleY);
+            angleX = angleX;
+            angleY += 4.0f; 
+            kx = cos(pi/180.0f*angleX*0.2)*sin(pi/180.0f*angleY*0.2);
+            ky = -sin(pi/180.0f*angleX*0.2);
+            kz = -cos(pi/180.0f*angleX*0.2)*cos(pi/180.0f*angleY*0.2);
         
             //angleY += 0.05f;
             //kx = sin(angleY);
@@ -525,7 +525,7 @@ static void on_mouse(int button, int state, int x, int y){
 }
 
 /* Osetljivost misa, da ne leti po ekranu */
-float sensitivity = 0.5;
+float sensitivity = 0.2;
 
 /* Pozicija misa */
 GLfloat mouse_x; 
@@ -533,15 +533,15 @@ GLfloat mouse_y;
 
 static void on_mouse_motion(int x, int y){
     glutSetCursor(GLUT_CURSOR_NONE); //CROSSHAIR
-    GLfloat deltaX;
-    GLfloat deltaY;    
-    
+    GLfloat deltaX = 0;
+    GLfloat deltaY = 0;    
+
     deltaX = x - mouse_x;
     deltaY = y - mouse_y;            
-        
+            
     mouse_x = x;
     mouse_y = y;
-
+    
     // Da kad prvi put uleti mis u ekran, da ne napravi cimanje ako 
     // je razlika prevelika
     if (deltaX < -6.0f)
@@ -571,7 +571,6 @@ static void on_mouse_motion(int x, int y){
     kx = cos(pi/180.0f*angleX*sensitivity)*sin(pi/180.0f*angleY*sensitivity);
     ky = -sin(pi/180.0f*angleX*sensitivity);
     kz = -cos(pi/180.0f*angleX*sensitivity)*cos(pi/180.0f*angleY*sensitivity);
-
 }
 
 static void on_timer(int value){
