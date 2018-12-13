@@ -10,13 +10,14 @@
  * http://www.lighthouse3d.com/tutorials/glut-tutorial/keyboard-example-moving-around-the-world/ 
  * 2. Kod za teksture preuzet sa časa. 
  * 3. Ideja koda za centriran krstić i ortogonalnu projekciju primećena kod kolege sa projektom
- 	  RG42-Tank-na-autoputu
- * 4. 
+       RG42-Tank-na-autoputu
+ * 4. Kod za sferu shvaćen, a zatim i preuzet sa vežbi
  * 
  */ 
 
 #include <stdio.h>
 #include <GL/glut.h>
+#include <GL/gl.h>
 #include <math.h>
 #include <time.h>
 #include "image.h"
@@ -25,12 +26,18 @@
 /* Imena fajlova sa teksturama. */
 #define FILENAME0 "wall.bmp"
 #define FILENAME1 "floor.bmp"
+#define FILENAME2 "door.bmp"
 
+/* Crtanje sfere u sobi */
+#define DRAW_SPHERE
+
+/* Tajmeri za animacije */
 #define TIMER_ID_SPHERE 0
 #define TIMER_ID_LEVO 1
 #define TIMER_ID_DESNO 2
 #define TIMER_ID_GORE 3
 #define TIMER_ID_DOLE 4
+#define TIMER_ID_BALL 5
 
 /* Identifikatori kad je miš blizu ivica */
 int levo = 0;
@@ -39,13 +46,15 @@ int gore = 0;
 int dole = 0;
 
 /* Konstanta pi */
-const static float pi = 3.141592653589793;
+#define pi 3.141592653589793
+/* Granična greška prilikom crtanja - sfera */
+#define eps 0.01
 
 /* Tajmer za rotaciju sfere */
 static int timer_active;
 
 /* Identifikatori tekstura. */
-static GLuint names[2];
+static GLuint names[3];
 
 /* Ugao rotacije oko y ose, za pravac kamere*/
 float angleY = 0.0;
@@ -58,7 +67,7 @@ float ky = 0.0f;
 float kz = -1.0f;
 
 /* Pozicija kamere */
-float x = 0.0f;
+float x = 2.0f;
 float y = 0.0f; // moze da se izostavi, jer je kretanje po podu (pod -> y = 0)
 float z = 4.9f; 
 
@@ -78,12 +87,14 @@ static void on_reshape(int width, int height);
 static void on_special_keys(int key, int xx, int yy);
 static void on_mouse(int button, int state, int x, int y);
 static void on_mouse_motion(int x, int y);
+
 static void on_timer(int value);
 static void on_right(int value);
 static void on_left(int value);
 static void on_bottom(int value);
 static void on_top(int value);
 
+/* Update za kameru */
 static void update();
 
 /* Deklaracija lokalnih funkcija za objekte */
@@ -93,6 +104,10 @@ static void draw_coordinate_system();
 static void draw_cross();
 static void draw_name();
 static void paintball();
+
+void draw_middle_object();
+
+/*------------------------------------------------------------------------------*/
 
 int main(int argc, char **argv){
 
@@ -115,7 +130,7 @@ int main(int argc, char **argv){
     glutSpecialFunc(on_special_keys);
     glutMouseFunc(on_mouse);
     glutPassiveMotionFunc(on_mouse_motion);
-    
+     
     /* Inicijalizuje se seed za random brojeve */
     srand(time(NULL));
     
@@ -130,8 +145,6 @@ int main(int argc, char **argv){
     
     
     /* Inicijalizacija OpenGL */
-   	/* Ukljucujemo normalizaciju vektora normala */
-    glEnable(GL_NORMALIZE);
     init();
 
     /* Ulazak u glavnu petlju */
@@ -146,12 +159,7 @@ static void init(void){
     Image * image;
 
     /* Boja pozadine prozora */
-    glClearColor(0, 0, 0.4, 0.5);
-
-    /* Promena debljine tacke */
-    glPointSize(10);
-    /* Promena debljine linije */
-    glLineWidth(10); 	
+    glClearColor(0, 0, 0.3, 0.5);   
 
     /* Podesavanje sablona na koji ce se iscrtavati linije */
     glEnable(GL_LINE_STIPPLE); 
@@ -159,19 +167,22 @@ static void init(void){
 
     /* Ukljucuje se testiranje z-koordinate piksela. */
     glEnable(GL_DEPTH_TEST);
+        
+    /* Ukljucujemo normalizaciju vektora normala */
+    glEnable(GL_NORMALIZE);
+    glEnable(GL_COLOR_MATERIAL);
+
     
-    /* Ukljucuje se svetlo */
-    glEnable (GL_LIGHTING); 
-    glEnable (GL_LIGHT0); 
-    glEnable (GL_COLOR_MATERIAL);
-    
+/* -----------------------------------------------------------------------*/    
+/* -----------------------------------------------------------------------*/
+
     /* Ukljucuju se teksture. */
     glEnable(GL_TEXTURE_2D);
 
     glTexEnvf(GL_TEXTURE_ENV,
               GL_TEXTURE_ENV_MODE,
               GL_REPLACE);
-              
+       
     /*
      * Inicijalizuje se objekat koji ce sadrzati teksture ucitane iz
      * fajla.
@@ -182,7 +193,7 @@ static void init(void){
     image_read(image, FILENAME0);
 
     /* Generisu se identifikatori tekstura. */
-    glGenTextures(2, names);
+    glGenTextures(3, names);
 
     glBindTexture(GL_TEXTURE_2D, names[0]);
     glTexParameteri(GL_TEXTURE_2D,
@@ -211,23 +222,41 @@ static void init(void){
                     GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
                  image->width, image->height, 0,
-                 GL_RGB, GL_UNSIGNED_BYTE, image->pixels);             
+                 GL_RGB, GL_UNSIGNED_BYTE, image->pixels); 
+                 
+    /* Kreira se druga tekstura. */
+    image_read(image, FILENAME2);
+    
+    glBindTexture(GL_TEXTURE_2D, names[2]);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+                 image->width, image->height, 0,
+                 GL_RGB, GL_UNSIGNED_BYTE, image->pixels);                
 
     /* Iskljucujemo aktivnu teksturu */
     glBindTexture(GL_TEXTURE_2D, 0);
 
     /* Unistava se objekat za citanje tekstura iz fajla. */
     image_done(image);
-
+    
+    
+/* ----------------------------SVETLO TREBA--------------------------------------*/
+  
 }
-
 static void on_reshape(int width, int height){
-    /* Pamcenje visine i sirine prozora */	
+    /* Pamcenje visine i sirine prozora */    
     window_width = width;
     window_height = height;
             
     /* Namestanje viewport-a */
-    glViewport(0, 0, window_width, window_height);	
+    glViewport(0, 0, window_width, window_height);    
 }
 
 static void on_display(void){
@@ -255,18 +284,19 @@ static void on_display(void){
     /* Pozivanje funkcija za iscrtavanje */
     glDisable(GL_DEPTH_TEST);
     draw_walls();
-    draw_object();
     draw_coordinate_system();
+    draw_middle_object();
 
-	/* Crtanje centralnog pokazivaca pravca kamere */
+    /* Crtanje centralnog pokazivaca pravca kamere */
     glDisable(GL_LINE_STIPPLE);
+    glDisable(GL_COLOR_MATERIAL);
     draw_cross();
     draw_name();
-   	paintball();
+    glEnable(GL_COLOR_MATERIAL);
     glEnable(GL_LINE_STIPPLE); 
 
     glEnable(GL_DEPTH_TEST);
-   // glutSetCursor(GLUT_CURSOR_NONE);        
+   
     /* Forsira se ponovno iscrtavanje prozora */
     glutPostRedisplay();
     
@@ -274,38 +304,60 @@ static void on_display(void){
     glutSwapBuffers();
 }
 
-static void on_keyboard(unsigned char key, int x, int y){
-    switch(key){
-        /* Izlaz iz programa za ESC = 27 */ 
-        case 27:
-            exit(0);
-            break;
+#ifdef DRAW_SPHERE
+/*
+ * Postavlja koordinate i normale temena sfere,
+ * u zavisnosti od parametara u i v
+ */
+void set_normal_and_vertex(float u, float v)
+{
+    glNormal3f(
+            sin(u) * sin(v),
+            cos(u),
+            sin(u) * cos(v)
+            );
+    glVertex3f(
+            sin(u) * sin(v),
+            1 + cos(u),
+            sin(u) * cos(v)
+            );
+}
+#endif // DRAW_SPHERE
 
-        /* Pokrece se rotiranje sfere */
-        case 'g':
-        case 'G':
-            if(!timer_active){
-                glutTimerFunc(50, on_timer, TIMER_ID_SPHERE);
-                timer_active = 1;
-            }
-            break;
-        
-        /* Zaustavlja se rotacija sfere. */    
-        case 'f':
-        case 'F':
-            timer_active = 0;
-            break;
-            
-        /* 32 je space */    
-        
-        default:
-            break;
+/* Crtamo objekat */
+void draw_middle_object()
+{
+    float u, v;
+    glDisable(GL_DEPTH_TEST);
+    glPushMatrix();
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glRotatef(p, 0, 1, 0);
+    glScalef(1, 1, 1);
+    int col;
+    if(timer_active)
+        col = p * 0.01f;
+    else
+        col = 0;
+    /* Crtamo objekat strip po strip */
+    for (u = 0; u < pi; u += pi / 30) {
+        glBegin(GL_TRIANGLE_STRIP);
+        for (v = 0; v <= pi*2 + eps; v += pi / 30) {
+            glColor3f(0.55, 0.55, 0);
+            set_normal_and_vertex(u, v);
+            glColor3f(0, rand()*col, 0);
+            set_normal_and_vertex(u + pi / 30, v);
+        }
+        glEnd();
     }
+    glDisable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+    glPopMatrix();
 }
 
 static void draw_walls(){
+
     /* Iscrtavanje poda */
-    glColor3f(0, 0, 0);
     glBindTexture(GL_TEXTURE_2D, names[1]);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glBegin(GL_POLYGON);
@@ -345,16 +397,43 @@ static void draw_walls(){
     glEnd();
     
     /* Iscrtavanje zadnjeg zida */
-    glColor3f(0.3, 0.3, 0.3);
+    glBindTexture(GL_TEXTURE_2D, names[0]);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glBegin(GL_POLYGON);
         glNormal3f(0, 0, 1);
+
+        glTexCoord2f(0, 0);
         glVertex3f(-8, 0, -8);
+        
+        glTexCoord2f(1, 0);        
         glVertex3f(8, 0, -8);
+      
+        glTexCoord2f(1, 1);      
         glVertex3f(8, 5, -8);
+        
+        glTexCoord2f(0, 1);        
         glVertex3f(-8, 5, -8);
     glEnd();
-
+    
+    /* Iscrtavanje vrata na zadnjem zidu */
+    glBindTexture(GL_TEXTURE_2D, names[2]);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+   
+    glBegin(GL_POLYGON);
+        glNormal3f(0, 0, 1);
+        
+        glTexCoord2f(0, 0);
+        glVertex3f(-0.7, 0, -8);
+        
+        glTexCoord2f(1, 0);
+        glVertex3f(0.7, 0, -8);
+        
+        glTexCoord2f(1, 1);
+        glVertex3f(0.7, 2, -8);
+        
+        glTexCoord2f(0, 1);
+        glVertex3f(-0.7, 2, -8);
+    glEnd();
     /* Iscrtavanje desnog zida */
     glBindTexture(GL_TEXTURE_2D, names[0]);
     //glColor3f(0.4, 0.4, 0.4);
@@ -376,14 +455,41 @@ static void draw_walls(){
     glEnd();
 
     /* Iscrtavanje prednjeg zida */
-    glColor3f(0.4, 0.8, 0.4);
+    glBindTexture(GL_TEXTURE_2D, names[0]);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glBegin(GL_POLYGON);
         glNormal3f(0, 0, -1);
+        
+        glTexCoord2f(0, 0);
         glVertex3f(-8, 0, 8);
+        
+        glTexCoord2f(1, 0);        
         glVertex3f(8, 0, 8);
+
+        glTexCoord2f(1, 1);
         glVertex3f(8, 5, 8);
+
+        glTexCoord2f(0, 1);
         glVertex3f(-8, 5, 8);
+    glEnd();
+    
+    /* Iscrtavanje plafona */
+    glBindTexture(GL_TEXTURE_2D, names[0]);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glBegin(GL_POLYGON);
+        glNormal3f(0, -8, 0);
+        
+        glTexCoord2f(0, 0);
+        glVertex3f(-8, 5, 8);
+        
+        glTexCoord2f(1, 0);        
+        glVertex3f(8, 5, 8);
+
+        glTexCoord2f(1, 1);
+        glVertex3f(8, 5, -8);
+
+        glTexCoord2f(0, 1);
+        glVertex3f(-8, 5, -8);
     glEnd();
     
     /* Iskljucujemo aktivnu teksturu */
@@ -404,7 +510,7 @@ static void draw_object(){
         glRotatef(p, 0, 1, 0);
         glTranslatef(0, 0.5, 0);
         
-        glColor3f(0.1, 1, 0.5); 
+        glColor3f(1, 1, 0.5); 
         glutSolidSphere(0.5f, 100, 100);
     glPopMatrix();
 }
@@ -427,70 +533,73 @@ static void draw_coordinate_system(){
     glEnd();
 }
 
+/* TODO uraditi t parametrizaciju sa brzinom i ispaljivanjem */
 static void paintball(){
-
+    float norma = sqrt((x+kx)*(x+kx) + (1+y+ky)*(1+y+ky) + (z+kz)*(z+kz));
+    glTranslatef((x+kx)/norma, (1+ky)/norma, (z+kz)/norma);
+    glColor3f(0.7, 0.7, 0.7);
+    glutSolidSphere(0.2f, 50, 50);
 }
 
 /* © Ideja preuzeta od kolege sa projektom RG42-tank-na-autoputu
- *	 Posluzila za crtanje krstica na sred ekrana
+ *     Posluzila za crtanje krstica na sred ekrana
  *
 */
-static void draw_name(){
-    glColor3f(0, 0 ,0);
+static void draw_name(){    
     glMatrixMode(GL_PROJECTION); 
     glPushMatrix();  
         glLoadIdentity();
         glMatrixMode(GL_MODELVIEW); 
-            glPushMatrix(); 
-                glLoadIdentity(); 
-                gluOrtho2D(0.0, window_width, window_height, 0.0); 
-                   
-                char display_string[32];
-                int words = sprintf(display_string,"%s", "Andelka Milovanovic");
-                if(words < 0)
-                    exit(1);
-                    
-                /*19 slova po 12 charova, ali mikarenjem je ovako bolje */
-                glRasterPos2i(window_width - 190.0, window_height - 30); 
-                int d = (int) strlen(display_string);
-                for (int i = 0; i < d; i++)
-                	glutBitmapCharacter(GLUT_BITMAP_9_BY_15, display_string[i]);
+        glPushMatrix(); 
+            glLoadIdentity();
+            
+            gluOrtho2D(0.0, window_width, window_height, 0.0);                 
+            char display_string[32];
+            int words = sprintf(display_string,"%s", "Andelka Milovanovic");
+            if(words < 0)
+                exit(1);    
+            /*19 slova po 12 charova, ali mikarenjem je ovako bolje */
+            glRasterPos2i(window_width - 190.0, window_height - 30); 
+            int d = (int) strlen(display_string);
+            for (int i = 0; i < d; i++)
+                glutBitmapCharacter(GLUT_BITMAP_9_BY_15, display_string[i]);
                 
-                glMatrixMode(GL_PROJECTION); 
-            glPopMatrix(); 
+            glMatrixMode(GL_PROJECTION); 
+        glPopMatrix(); 
         glMatrixMode(GL_MODELVIEW); 
     glPopMatrix(); 
     glutPostRedisplay();
 }
 
 /* Crtanje pokazivača pravca kamere */
-static void draw_cross(){
-	glColor3f(0, 0.6 ,0);
+static void draw_cross(){ 
+    glColor3f(1, 1, 1);
     glMatrixMode(GL_PROJECTION); 
     glPushMatrix();  
         glLoadIdentity();
         glMatrixMode(GL_MODELVIEW); 
-            glPushMatrix(); 
-                glLoadIdentity(); 
-                gluOrtho2D(0.0, window_width, window_height, 0.0);
-               	glLineWidth(0.1);
-              	glBegin(GL_LINES);
-              		glVertex2f(window_width/2 - 10.0, window_height/2);
-              		glVertex2f(window_width/2 + 10.0, window_height/2);
-              	    glVertex2f(window_width/2, window_height/2 - 10.0);
-             		glVertex2f(window_width/2, window_height/2 + 10.0);
-          		glEnd();
-			glMatrixMode(GL_PROJECTION); 
-            glPopMatrix(); 
+        glPushMatrix(); 
+            glLoadIdentity(); 
+            
+            gluOrtho2D(0.0, window_width, window_height, 0.0);
+            glLineWidth(0.1);
+            glBegin(GL_LINES);
+                glVertex2f(window_width/2 - 10.0, window_height/2);
+                glVertex2f(window_width/2 + 10.0, window_height/2);
+                glVertex2f(window_width/2, window_height/2 - 10.0);
+                glVertex2f(window_width/2, window_height/2 + 10.0);
+            glEnd();
+
+            glMatrixMode(GL_PROJECTION); 
+        glPopMatrix(); 
         glMatrixMode(GL_MODELVIEW); 
-    	glPopMatrix(); 
+    glPopMatrix(); 
     glutPostRedisplay();
-    
-    
-	/* Ovako je radilo kao tačkica na ekranu, ali kad stavim da crtam krstić
-	 * onda je bilo problema kad se kamera rotira, krstić se samo translira,
-	 * ali se i ne rotira, pa je kolega pomogao sa efikasnijom idejom iznad
-	*/
+   
+    /* Ovako je radilo kao tačkica na ekranu, ali kad stavim da crtam krstić
+     * onda je bilo problema kad se kamera rotira, krstić se samo translira,
+     * ali se i ne rotira, pa je kolega pomogao sa efikasnijom idejom iznad
+    */
     /*glColor3f(0, 0, 0);
     glPointSize(5.0f);
     glBegin(GL_POINTS);
@@ -498,34 +607,93 @@ static void draw_cross(){
     glEnd();*/
 }
 
+static void on_keyboard(unsigned char key, int x, int y){
+    (void)x;
+    (void)y;
+    switch(key){
+        /* Izlaz iz programa za ESC = 27 */ 
+        case 27:
+            exit(0);
+            break;
+
+        /* Pokrece se rotiranje sfere */
+        case 'g':
+        case 'G':
+            if(!timer_active){
+                glutTimerFunc(50, on_timer, TIMER_ID_SPHERE);
+                timer_active = 1;
+            }
+            break;
+        
+        /* Zaustavlja se rotiranje sfere. */    
+        case 'f':
+        case 'F':
+            timer_active = 0;
+            break;
+            
+        /* 32 je space */    
+        
+        default:
+            break;
+    }
+}
+
 static void on_special_keys(int key, int xx, int yy){
-    /* Definise brzinu pomeraja (u mom slucaju kamere)*/	
+    (void)xx;
+    (void)yy;
+    
+    /* Definise brzinu pomeraja (u mom slucaju kamere)*/    
     float fraction = 0.1f;
     
     switch(key){
     case GLUT_KEY_LEFT:
-    	angleX = angleX;
+        if (x > 7.9)
+            x -= 0.005;
+        else if (z < -7.9)
+           z += 0.05;
+        else if (z > 7.9)
+           z -= 0.05;
+        else if (x < -7.9)
+           x += 0.05;
+        else {
+            x += kz * fraction;
+            z -= kx * fraction;
+        }
+        /*angleX = angleX;
         angleY -= 4.0f;
         kx = cos(pi/180.0f*angleX*0.2)*sin(pi/180.0f*angleY*0.2);
         ky = -sin(pi/180.0f*angleX*0.2);
-        kz = -cos(pi/180.0f*angleX*0.2)*cos(pi/180.0f*angleY*0.2);
+        kz = -cos(pi/180.0f*angleX*0.2)*cos(pi/180.0f*angleY*0.2);*/
         break;
     case GLUT_KEY_RIGHT:
-        angleX = angleX;
+        if (x > 7.9)
+            x -= 0.005;
+        else if (z < -7.9)
+           z += 0.05;
+        else if (z > 7.9)
+           z -= 0.05;
+        else if (x < -7.9)
+           x += 0.05;
+        else {
+            x -= kz * fraction;
+            z += kx * fraction;
+        }
+       /* angleX = angleX;
         angleY += 4.0f; 
         kx = cos(pi/180.0f*angleX*0.2)*sin(pi/180.0f*angleY*0.2);
         ky = -sin(pi/180.0f*angleX*0.2);
-        kz = -cos(pi/180.0f*angleX*0.2)*cos(pi/180.0f*angleY*0.2);
-       	break;
+        kz = -cos(pi/180.0f*angleX*0.2)*cos(pi/180.0f*angleY*0.2); */
+           break;
     case GLUT_KEY_UP:
+        //printf("Kamera gleda u %g %g %g\n", kx, ky, kz);
         if (x > 7.9)
- 	       x = x-0.005;
+            x -= 0.005;
         else if (z < -7.9)
-           z = z + 0.05;
+           z += 0.05;
         else if (z > 7.9)
-           z = z - 0.05;
+           z -= 0.05;
         else if (x < -7.9)
-           x = x + 0.05;
+           x += 0.05;
         else{
            x += kx * fraction;
            z += kz * fraction;
@@ -533,13 +701,13 @@ static void on_special_keys(int key, int xx, int yy){
         break;
     case GLUT_KEY_DOWN:
         if (x < -7.9)
-           x = x + 0.05;
+           x += 0.05;
         else if( z > 7.9)
-           z = z - 0.05;
+           z -= 0.05;
         else if (z < -7.9)
-           z = z + 0.05;
+           z += 0.05;
         else if (x > 7.9)
-           x = x - 0.05;
+           x -= 0.05;
         else{
            x -= kx * fraction;
            z -= kz * fraction;
@@ -551,13 +719,17 @@ static void on_special_keys(int key, int xx, int yy){
 }
 
 static void on_mouse(int button, int state, int x, int y){
+    (void)x;
+    (void)y;
     switch(button){
         case GLUT_LEFT_BUTTON:
             if(state == GLUT_DOWN){
-            //printf("Pritisnut je levi klik\n");
-                glutSetCursor(GLUT_CURSOR_LEFT_RIGHT);
-            }
+                //glutSetCursor(GLUT_CURSOR_LEFT_RIGHT);
+                printf("Treba da nacrtam sferu\n");
+               // draw_middle_object();
+            }     
             break;
+        
         case GLUT_RIGHT_BUTTON:
             if(state == GLUT_DOWN){
             //printf("Pritisnut je desni klik\n"); 
@@ -575,93 +747,96 @@ float sensitivity = 0.2f;
 GLfloat mouse_x; 
 GLfloat mouse_y;
 
-static void on_mouse_motion(int x, int y){
-	
-	if( x > window_width-10.0f){
-		if(!desno){
-			glutTimerFunc(15, on_right, TIMER_ID_DESNO);
-			desno = 1;
-		}
-	}
-	else if (x < 10.0f){
-		if(!levo){
-			glutTimerFunc(15, on_left, TIMER_ID_LEVO);
-			levo = 1;
-		}
-	}
-	else if (y > window_height-10.0f){
-		if(!dole){
-			glutTimerFunc(15, on_bottom, TIMER_ID_DOLE);
-			dole = 1;
-		}
-	}
-	else if (y < 10.0f){
-		if(!gore){
-			glutTimerFunc(15, on_top, TIMER_ID_GORE);
-			gore = 1;
-		}
-	}
-	else{
-		desno = 0;
-		levo = 0;
-		gore = 0;
-		dole = 0;
-		
-		glutSetCursor(GLUT_CURSOR_NONE); //CROSSHAIR
-  		
-  		GLfloat deltaX = 0;
-    	GLfloat deltaY = 0;   
-		
-		deltaX = x - mouse_x;
-		deltaY = y - mouse_y;            
-		        
-		mouse_x = x;
-		mouse_y = y;
-		
-		/* Da kad prvi put uleti mis u ekran, da ne napravi cimanje ako 
-		 je razlika prevelika */
-		if (deltaX < -6.0f)
-		    deltaX = -6.0f;
-		if (deltaX > 6.0f)
-		    deltaX = 6.0f;
-		if (deltaY < -6.0f)
-		    deltaY = -6.0f;
-		if (deltaY > 6.0f)
-		    deltaY = 6.0f;
-
-		angleY += deltaX;
-		angleX += deltaY;
-	
-		update();
-	}
+static void on_mouse_motion(int x, int y){    
+    if( x > window_width-5.0f){
+        if(!desno){
+            glutTimerFunc(15, on_right, TIMER_ID_DESNO);
+            desno = 1;
+        }
+    }
+    else if (x < 5.0f){
+        if(!levo){
+            glutTimerFunc(15, on_left, TIMER_ID_LEVO);
+            levo = 1;
+        }
+    }
+    else if (y > window_height-5.0f){
+        if(!dole){
+            glutTimerFunc(15, on_bottom, TIMER_ID_DOLE);
+            dole = 1;
+        }
+    }
+    else if (y < 5.0f){
+        if(!gore){
+            glutTimerFunc(15, on_top, TIMER_ID_GORE);
+            gore = 1;
+        }
+    }
+    else{
+        desno = 0;
+        levo = 0;
+        gore = 0;
+        dole = 0;
+        
+        glutSetCursor(GLUT_CURSOR_NONE); //CROSSHAIR
+          
+        GLfloat deltaX = 0;
+        GLfloat deltaY = 0;   
+        
+        deltaX = x - mouse_x;
+        deltaY = y - mouse_y;            
+        
+        mouse_x = x;
+        mouse_y = y;
+        
+        /* Da kad prvi put uleti mis u ekran, da ne napravi cimanje ako 
+         je razlika prevelika */
+        if (deltaX < -6.0f){
+            deltaX = -6.0f;
+        }
+        if (deltaX > 6.0f){
+            deltaX = 6.0f;
+        }    
+        if (deltaY < -6.0f){
+            deltaY = -6.0f;
+        }    
+        if (deltaY > 6.0f){
+            deltaY = 6.0f;
+        }    
+        angleY += deltaX;
+        angleX += deltaY;
+        
+        update();
+    }
 }
 
 static void update(){
-	/* Brinem o tome da uglovi budu u svojim granicama */
-	if(angleY > 360.0*1/sensitivity)
-	    angleY -= 360.0*1/sensitivity;
-	if(angleY < -360.0*1/sensitivity)
-	    angleY += 360.0*1/sensitivity;
-	
-	if(angleX > 89.0*1/sensitivity)
-	    angleX = 89.0*1/sensitivity;
-	if(angleX < -89.0*1/sensitivity)
-	    angleX = -89.0*1/sensitivity; 
-	                
-	/* u radijane prebacimo uglove i radimo sa sfernim koordinatama */ 
-	kx = cos(pi/180.0f*angleX*sensitivity)*sin(pi/180.0f*angleY*sensitivity);
-	ky = -sin(pi/180.0f*angleX*sensitivity);
-	kz = -cos(pi/180.0f*angleX*sensitivity)*cos(pi/180.0f*angleY*sensitivity);	
+    /* Brinem o tome da uglovi budu u svojim granicama */
+    if(angleY > 360.0*1/sensitivity){
+        angleY -= 360.0*1/sensitivity;
+    }
+    if(angleY < -360.0*1/sensitivity){
+        angleY += 360.0*1/sensitivity;
+    }
+    if(angleX > 89.0*1/sensitivity){
+        angleX = 89.0*1/sensitivity;
+    }
+    if(angleX < -89.0*1/sensitivity){
+        angleX = -89.0*1/sensitivity;
+    } 
+                    
+    /* u radijane prebacimo uglove i radimo sa sfernim koordinatama */ 
+    kx = cos(pi/180.0f*angleX*sensitivity)*sin(pi/180.0f*angleY*sensitivity);
+    ky = -sin(pi/180.0f*angleX*sensitivity);
+    kz = -cos(pi/180.0f*angleX*sensitivity)*cos(pi/180.0f*angleY*sensitivity);    
 }
-
-static void paintball();
 
 /* Tajmer za rotaciju sfere */
 static void on_timer(int value){
-	/* Proveravam da li bas ovaj tajmer */
+    /* Proveravam da li bas ovaj tajmer */
     if (value != TIMER_ID_SPHERE)
         return;
-   	if(p >= 360)
+       if(p >= 360)
         p -= 360;
     p += 3;
     
@@ -674,13 +849,13 @@ static void on_timer(int value){
 }
 
 static void on_right(int value){
-	/* Proveravam da li bas ovaj tajmer */
+    /* Proveravam da li bas ovaj tajmer */
     if (value != TIMER_ID_DESNO)
         return;
         
-    angleY += 3.0f;
-	
-	update();
+    angleY += 2.0f;   
+    
+    update();
     glutPostRedisplay();
     /* Po potrebi se ponovo postavlja tajmer. */
     if (desno)
@@ -688,43 +863,43 @@ static void on_right(int value){
         
 }
 static void on_left(int value){
-	/* Proveravam da li bas ovaj tajmer */
+    /* Proveravam da li bas ovaj tajmer */
     if (value != TIMER_ID_LEVO)
         return;
       
-	angleY -= 3.0f;
-	
-	update();
-	glutPostRedisplay();
+    angleY -= 2.0f;
+        
+    update();
+    glutPostRedisplay();
     /* Po potrebi se ponovo postavlja tajmer. */
     if (levo)
         glutTimerFunc(10, on_left, value);
 }
 
 static void on_bottom(int value){
-	/* Proveravam da li bas ovaj tajmer */
+    /* Proveravam da li bas ovaj tajmer */
     if (value != TIMER_ID_DOLE)
         return;
         
-	angleX += 3.0f;
-	
-	update();
-	glutPostRedisplay();
+    angleX += 1.0f;
+    
+    update();
+    glutPostRedisplay();
     /* Po potrebi se ponovo postavlja tajmer. */
     if (dole)
         glutTimerFunc(10, on_bottom, value);
 }
+
 static void on_top(int value){
-	/* Proveravam da li bas ovaj tajmer */
+    /* Proveravam da li bas ovaj tajmer */
     if (value != TIMER_ID_GORE)
         return;
       
-	angleX -= 3.0f;
-	
-	update();
-	glutPostRedisplay();
+    angleX -= 1.0f;
+    
+    update();
+    glutPostRedisplay();
     /* Po potrebi se ponovo postavlja tajmer. */
     if (gore)
         glutTimerFunc(10, on_top, value);
 }
-
