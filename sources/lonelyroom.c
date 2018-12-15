@@ -3,16 +3,16 @@
    Projekat: RG40-Lonely-Room
 */
 
-
-/**************************************NAPOMENE**************************************/
+/********************************************NAPOMENE********************************************/
 /* 
  * 1. Literatura za implementaciju kamere na Left/Right/Up/Down:
  * http://www.lighthouse3d.com/tutorials/glut-tutorial/keyboard-example-moving-around-the-world/ 
  * 2. Kod za teksture preuzet sa časa. 
  * 3. Ideja koda za centriran krstić i ortogonalnu projekciju primećena kod kolege sa projektom
-       RG42-Tank-na-autoputu
- * 4. Kod za sferu shvaćen, a zatim i preuzet sa vežbi
- * 
+      RG42-Tank-na-autoputu. Hvala! :) 
+ * 4. Kod za sferu shvaćen, a zatim i preuzet sa vežbi.
+ * 5.
+
  */ 
 
 #include <stdio.h>
@@ -22,6 +22,9 @@
 #include <time.h>
 #include "image.h"
 #include <string.h>
+#include "ortho.h"
+#include "axes.h"
+#include "light.h"
 
 /* Imena fajlova sa teksturama. */
 #define FILENAME0 "wall.bmp"
@@ -61,7 +64,7 @@ float angleY = 0.0;
 /* Ugao rotacije oko x ose, za pravac kamere */
 float angleX = 0.0;
 
-/* Vektor koji predstavlja pravac kamere */
+/* Vektor pravca kamere */
 float kx = 0.0f;
 float ky = 0.0f; 
 float kz = -1.0f;
@@ -71,11 +74,33 @@ float x = 2.0f;
 float y = 0.0f; // moze da se izostavi, jer je kretanje po podu (pod -> y = 0)
 float z = 4.9f; 
 
+/* Pozicija kuglice */
+float x_ball; 
+float y_ball; 
+float z_ball; 
+/* Vektor pravca kuglice */
+float bx = 0.0f;
+float by = 0.0f;
+float bz = -1.0f;
+
+/* Indikatori za boje */
+float r_table = 1;
+float g_table = 1;
+float b_table = 1;
+    
+
 /* Dimenzije prozora */
 static int window_width, window_height;
 
 /* Parametar za rotaciju sfere na sredini */
 int p = 0;
+
+/* Indikator bojenja table */
+int color_table = 0;
+
+/* Tajmer za ispucavanje kuglice */
+float t;
+static int move_ball;
 
 /* OpenGL inicijalizacija */
 static void init(void); 
@@ -93,19 +118,20 @@ static void on_right(int value);
 static void on_left(int value);
 static void on_bottom(int value);
 static void on_top(int value);
+static void moving_ball(int value);
 
 /* Update za kameru */
 static void update();
 
 /* Deklaracija lokalnih funkcija za objekte */
 static void draw_walls();
-static void draw_object();
-static void draw_coordinate_system();
-static void draw_cross();
-static void draw_name();
+static void draw_middle_object();
+static void draw_color_table();
 static void paintball();
 
-void draw_middle_object();
+/* Za fullscreenovanje */
+int fullscreen = 0;
+void screen_size();
 
 /*------------------------------------------------------------------------------*/
 
@@ -116,12 +142,12 @@ int main(int argc, char **argv){
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
     
     /* Kreiranje prozora */
-    glutInitWindowSize(800, 800);
-    glutInitWindowPosition(300, 50);
+    glutInitWindowSize(1000, 600);
+    glutInitWindowPosition(200, 100);
     glutCreateWindow("Lonely Room");
     
     /* Uvek otvori preko celog prozora */
-    glutFullScreen();
+    //glutFullScreen();
     
     /* Registracija callback funkcija za obradu dogadjaja*/
     glutDisplayFunc(on_display);
@@ -136,6 +162,8 @@ int main(int argc, char **argv){
     
     /* Tajmer za rotaciju sfere na sredini */
     timer_active = 0;
+    move_ball = 0;
+    t = 0;
     
     /* Ovo je bilo ukljuceno dok nisam skontala
         da je neefikasno i da treba samo da pozovem 
@@ -159,20 +187,25 @@ static void init(void){
     Image * image;
 
     /* Boja pozadine prozora */
-    glClearColor(0, 0, 0.3, 0.5);   
+    glClearColor(0, 0, 0, 0.5);
+       
+    /* Ukljucuje se testiranje z-koordinate piksela. */
+    glEnable(GL_DEPTH_TEST);
 
     /* Podesavanje sablona na koji ce se iscrtavati linije */
     glEnable(GL_LINE_STIPPLE); 
     glLineStipple(1, 0x1110); 
 
-    /* Ukljucuje se testiranje z-koordinate piksela. */
-    glEnable(GL_DEPTH_TEST);
-        
     /* Ukljucujemo normalizaciju vektora normala */
     glEnable(GL_NORMALIZE);
     glEnable(GL_COLOR_MATERIAL);
 
-    
+
+    /* Ukjucuje se blending */
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+   
 /* -----------------------------------------------------------------------*/    
 /* -----------------------------------------------------------------------*/
 
@@ -256,22 +289,23 @@ static void on_reshape(int width, int height){
     window_height = height;
             
     /* Namestanje viewport-a */
-    glViewport(0, 0, window_width, window_height);    
-}
-
-static void on_display(void){
-    /* Brisanje starog prozora */
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+    glViewport(0, 0, window_width, window_height); 
+    
     /* Namestanje projekcije */
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluPerspective(
-            60, 
+            80, 
             window_width/(float)window_height,
             0.0, 
             10.0
-    );
+    );   
+}
+
+static void on_display(void){
+
+    /* Brisanje starog prozora */
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     /* Namestanje tacke pogleda kamere */
     glMatrixMode(GL_MODELVIEW);
@@ -280,21 +314,27 @@ static void on_display(void){
                x+kx, 1.0f+ky, z+kz,
                0.0f, 1.0f, 0.0f
     );
-    
+
+    /* Ukljucujem svetlo */    
+    init_lights();
+
+    x_ball = x;
+    y_ball = y;
+    z_ball = z;
+
     /* Pozivanje funkcija za iscrtavanje */
-    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_DEPTH_TEST);    
     draw_walls();
     draw_coordinate_system();
+    draw_color_table();
     draw_middle_object();
-
+    paintball();
+    
     /* Crtanje centralnog pokazivaca pravca kamere */
     glDisable(GL_LINE_STIPPLE);
-    glDisable(GL_COLOR_MATERIAL);
     draw_cross();
-    draw_name();
-    glEnable(GL_COLOR_MATERIAL);
-    glEnable(GL_LINE_STIPPLE); 
-
+    glEnable(GL_LINE_STIPPLE);
+    draw_name(); 
     glEnable(GL_DEPTH_TEST);
    
     /* Forsira se ponovno iscrtavanje prozora */
@@ -324,34 +364,44 @@ void set_normal_and_vertex(float u, float v)
 }
 #endif // DRAW_SPHERE
 
+static void draw_color_table() {
+    glPushMatrix();    
+        glColor3f(-1*r_table, -0.5*b_table , -1*g_table);
+
+        glBegin(GL_QUADS);
+            glVertex3f(-8, 1, 4);    
+            glVertex3f(-8, 1, 1);
+            glVertex3f(-8, 3, 1);
+            glVertex3f(-8, 3, 4);
+        glEnd();
+    glPopMatrix();
+}
+
 /* Crtamo objekat */
-void draw_middle_object()
+static void draw_middle_object()
 {
-    float u, v;
-    glDisable(GL_DEPTH_TEST);
     glPushMatrix();
+    float u, v;
+    set_material(5);
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glRotatef(p, 0, 1, 0);
     glScalef(1, 1, 1);
-    int col;
-    if(timer_active)
-        col = p * 0.01f;
-    else
-        col = 0;
+    float r = bx;
+    float g = by;
+    float b = bz;
     /* Crtamo objekat strip po strip */
     for (u = 0; u < pi; u += pi / 30) {
         glBegin(GL_TRIANGLE_STRIP);
         for (v = 0; v <= pi*2 + eps; v += pi / 30) {
-            glColor3f(0.55, 0.55, 0);
+            glColor3f(-1*r, -1*b, -1*g);
             set_normal_and_vertex(u, v);
-            glColor3f(0, rand()*col, 0);
+            glColor3f(-1*r, -1*b, -1*g);
             set_normal_and_vertex(u + pi / 30, v);
         }
         glEnd();
     }
     glDisable(GL_CULL_FACE);
-    glEnable(GL_DEPTH_TEST);
     glPopMatrix();
 }
 
@@ -497,115 +547,39 @@ static void draw_walls(){
 
 }
 
-/* Crtam sferu na sredini i sto u ćošku */
-static void draw_object(){
-     glPushMatrix();
-        glColor3f(0, 0, 0);
-        glTranslatef(7, 0.5, -7.5);
-        glScalef(2, 1, 1);
-        glutWireCube(1.0f);
-    glPopMatrix();
-    
-    glPushMatrix();
-        glRotatef(p, 0, 1, 0);
-        glTranslatef(0, 0.5, 0);
-        
-        glColor3f(1, 1, 0.5); 
-        glutSolidSphere(0.5f, 100, 100);
-    glPopMatrix();
-}
-
-/* Iscrtavanje koordinatnih osa */
-static void draw_coordinate_system(){
-    glEnable(GL_LINE_STIPPLE);
-    glBegin(GL_LINES);
-        glColor3f(1, 0, 0);
-        glVertex3f(-5, 0, 0);
-        glVertex3f(20, 0, 0);
-
-        glColor3f(0, 1, 0);
-        glVertex3f(0, -5, 0);
-        glVertex3f(0, 20, 0);
-    
-        glColor3f(0, 0, 1);
-        glVertex3f(0, 0, -5);
-        glVertex3f(0, 0, 20);
-    glEnd();
-}
-
 /* TODO uraditi t parametrizaciju sa brzinom i ispaljivanjem */
 static void paintball(){
-    float norma = sqrt((x+kx)*(x+kx) + (1+y+ky)*(1+y+ky) + (z+kz)*(z+kz));
-    glTranslatef((x+kx)/norma, (1+ky)/norma, (z+kz)/norma);
-    glColor3f(0.7, 0.7, 0.7);
-    glutSolidSphere(0.2f, 50, 50);
+
+    /* Iscrtavanje linija koji predstavlja vektor pravca pogleda */
+    /*    
+    glPushMatrix();
+        glDisable(GL_LINE_STIPPLE);
+        glColor3f(1, 1, 0);
+        glBegin(GL_LINES);
+            glVertex3f(x, y, z);
+            glVertex3f(x+kx*5, y+ky*5, z+kz*5);
+        glEnd();
+        glEnable(GL_LINE_STIPPLE);
+    glPopMatrix(); */
+
+    glPushMatrix();
+        glColor3f(-1*kx, -1*kz, -1*ky);
+        /* kx, ky, kz je već normiran, tako da je on vektor pravca metka */
+        x_ball = x_ball+t*bx;
+        y_ball = y_ball+0.9f+t*by; // ovde 0.9 posteriori, da ne puca iz noge, a ni iz glave! 
+        z_ball = z_ball+t*bz;
+        
+        //printf("bx: %f, by: %f, bz: %f\n", bx, by, bz);
+
+        glTranslatef(x_ball, y_ball, z_ball);
+        glutSolidSphere(0.08f, 30, 30);
+
+        if(z_ball <= 1.5f && z_ball >= -1.5f && x_ball <=1.5f && x_ball >= -1.5f)
+            printf("Pogodila loptica u sferu\n");
+       // printf("x_ball: %f\t y_ball: %f\t z_ball: %f\n", x_ball, y_ball, z_ball);
+    glPopMatrix();
 }
 
-/* © Ideja preuzeta od kolege sa projektom RG42-tank-na-autoputu
- *     Posluzila za crtanje krstica na sred ekrana
- *
-*/
-static void draw_name(){    
-    glMatrixMode(GL_PROJECTION); 
-    glPushMatrix();  
-        glLoadIdentity();
-        glMatrixMode(GL_MODELVIEW); 
-        glPushMatrix(); 
-            glLoadIdentity();
-            
-            gluOrtho2D(0.0, window_width, window_height, 0.0);                 
-            char display_string[32];
-            int words = sprintf(display_string,"%s", "Andelka Milovanovic");
-            if(words < 0)
-                exit(1);    
-            /*19 slova po 12 charova, ali mikarenjem je ovako bolje */
-            glRasterPos2i(window_width - 190.0, window_height - 30); 
-            int d = (int) strlen(display_string);
-            for (int i = 0; i < d; i++)
-                glutBitmapCharacter(GLUT_BITMAP_9_BY_15, display_string[i]);
-                
-            glMatrixMode(GL_PROJECTION); 
-        glPopMatrix(); 
-        glMatrixMode(GL_MODELVIEW); 
-    glPopMatrix(); 
-    glutPostRedisplay();
-}
-
-/* Crtanje pokazivača pravca kamere */
-static void draw_cross(){ 
-    glColor3f(1, 1, 1);
-    glMatrixMode(GL_PROJECTION); 
-    glPushMatrix();  
-        glLoadIdentity();
-        glMatrixMode(GL_MODELVIEW); 
-        glPushMatrix(); 
-            glLoadIdentity(); 
-            
-            gluOrtho2D(0.0, window_width, window_height, 0.0);
-            glLineWidth(0.1);
-            glBegin(GL_LINES);
-                glVertex2f(window_width/2 - 10.0, window_height/2);
-                glVertex2f(window_width/2 + 10.0, window_height/2);
-                glVertex2f(window_width/2, window_height/2 - 10.0);
-                glVertex2f(window_width/2, window_height/2 + 10.0);
-            glEnd();
-
-            glMatrixMode(GL_PROJECTION); 
-        glPopMatrix(); 
-        glMatrixMode(GL_MODELVIEW); 
-    glPopMatrix(); 
-    glutPostRedisplay();
-   
-    /* Ovako je radilo kao tačkica na ekranu, ali kad stavim da crtam krstić
-     * onda je bilo problema kad se kamera rotira, krstić se samo translira,
-     * ali se i ne rotira, pa je kolega pomogao sa efikasnijom idejom iznad
-    */
-    /*glColor3f(0, 0, 0);
-    glPointSize(5.0f);
-    glBegin(GL_POINTS);
-        glVertex3f(x+kx*100.0f/15.0f, 1+ky*100.0f/15.0f, z+kz*100.0f/15.0f);
-    glEnd();*/
-}
 
 static void on_keyboard(unsigned char key, int x, int y){
     (void)x;
@@ -626,13 +600,29 @@ static void on_keyboard(unsigned char key, int x, int y){
             break;
         
         /* Zaustavlja se rotiranje sfere. */    
-        case 'f':
-        case 'F':
+        case 'h':
+        case 'H':
             timer_active = 0;
             break;
+        case 'f':
+        case 'F':
+            screen_size();
+            break;
             
-        /* 32 je space */    
+        case 'p':
+        case 'P':
+            if(!move_ball){
+                bx = kx;
+                by = ky;
+                bz = kz;
+                t = 0.0f;
+                glutTimerFunc(10, moving_ball, TIMER_ID_BALL);
+                move_ball = !move_ball; 
+            }
+            break;
         
+        /* 32 je space, ako zatreba */    
+
         default:
             break;
     }
@@ -724,16 +714,24 @@ static void on_mouse(int button, int state, int x, int y){
     switch(button){
         case GLUT_LEFT_BUTTON:
             if(state == GLUT_DOWN){
-                //glutSetCursor(GLUT_CURSOR_LEFT_RIGHT);
-                printf("Treba da nacrtam sferu\n");
-               // draw_middle_object();
+              //  glutSetCursor(GLUT_CURSOR_LEFT_RIGHT);
+                if(!move_ball){                
+                    float norma = sqrt(kx*kx+ky*ky+kz*kz);
+                    bx = kx/norma;
+                    by = ky/norma;
+                    bz = kz/norma;
+                    t = 0;
+                    glutTimerFunc(10, moving_ball, TIMER_ID_BALL);
+                    move_ball = 1; 
+                }
             }     
             break;
         
         case GLUT_RIGHT_BUTTON:
             if(state == GLUT_DOWN){
+                t = 0;
             //printf("Pritisnut je desni klik\n"); 
-                glutSetCursor(GLUT_CURSOR_TOP_SIDE);
+           //     glutSetCursor(GLUT_CURSOR_CROSSHAIR);
             }
             break;
         default:
@@ -750,29 +748,34 @@ GLfloat mouse_y;
 static void on_mouse_motion(int x, int y){    
     if( x > window_width-5.0f){
         if(!desno){
+            glutSetCursor(GLUT_CURSOR_SPRAY);
             glutTimerFunc(15, on_right, TIMER_ID_DESNO);
             desno = 1;
         }
     }
     else if (x < 5.0f){
+        glutSetCursor(GLUT_CURSOR_SPRAY);
         if(!levo){
             glutTimerFunc(15, on_left, TIMER_ID_LEVO);
             levo = 1;
         }
     }
     else if (y > window_height-5.0f){
+        glutSetCursor(GLUT_CURSOR_SPRAY);
         if(!dole){
             glutTimerFunc(15, on_bottom, TIMER_ID_DOLE);
             dole = 1;
         }
     }
     else if (y < 5.0f){
+        glutSetCursor(GLUT_CURSOR_SPRAY);
         if(!gore){
             glutTimerFunc(15, on_top, TIMER_ID_GORE);
             gore = 1;
         }
     }
     else{
+        glutSetCursor(GLUT_CURSOR_NONE);
         desno = 0;
         levo = 0;
         gore = 0;
@@ -902,4 +905,37 @@ static void on_top(int value){
     /* Po potrebi se ponovo postavlja tajmer. */
     if (gore)
         glutTimerFunc(10, on_top, value);
+}
+
+static void moving_ball(int value){
+    if (value != TIMER_ID_BALL)
+        return;
+
+    if(x_ball > 8.0f || x_ball < -8.0f || y_ball > 5.0f || y_ball < 0.0f || z_ball > 8.0f || z_ball < -8.0f){
+        move_ball = 0;
+        t = 0;
+        return;        
+    }
+    else if (x_ball <= -7.9f && x_ball >= -8.0f && y_ball <= 3 && y_ball >= 1 && z_ball <= 4 && z_ball >= 1){
+        r_table = bx;
+        g_table = by;
+        b_table = bz;
+    } 
+
+    t += .2f;
+//    glutPostRedisplay();
+
+    if (move_ball)
+        glutTimerFunc(10, moving_ball, value);
+}
+
+void screen_size() {
+    if (fullscreen == 0) {
+        glutFullScreen();
+        fullscreen = 1;
+    }
+    else {
+        glutReshapeWindow(1000, 600);
+        fullscreen = 0;
+    }
 }
