@@ -142,13 +142,10 @@ int main(int argc, char **argv){
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
     
     /* Kreiranje prozora */
-    glutInitWindowSize(1000, 600);
+    glutInitWindowSize(1200, 600);
     glutInitWindowPosition(200, 100);
     glutCreateWindow("Lonely Room");
-    
-    /* Uvek otvori preko celog prozora */
-    //glutFullScreen();
-    
+     
     /* Registracija callback funkcija za obradu dogadjaja*/
     glutDisplayFunc(on_display);
     glutKeyboardFunc(on_keyboard);
@@ -315,7 +312,7 @@ static void on_display(void){
                0.0f, 1.0f, 0.0f
     );
 
-    /* Ukljucujem svetlo */    
+    /* Ukljucujem svetlo */   
     init_lights();
 
     x_ball = x;
@@ -358,7 +355,7 @@ void set_normal_and_vertex(float u, float v)
             );
     glVertex3f(
             sin(u) * sin(v),
-            1 + cos(u),
+            3 + cos(u),
             sin(u) * cos(v)
             );
 }
@@ -366,7 +363,7 @@ void set_normal_and_vertex(float u, float v)
 
 static void draw_color_table() {
     glPushMatrix();    
-        glColor3f(-1*r_table, -0.5*b_table , -1*g_table);
+        glColor3f(-r_table, -g_table , -b_table);
 
         glBegin(GL_QUADS);
             glVertex3f(-8, 1, 4);    
@@ -377,7 +374,7 @@ static void draw_color_table() {
     glPopMatrix();
 }
 
-/* Crtamo objekat */
+/* Crtam objekat */
 static void draw_middle_object()
 {
     glPushMatrix();
@@ -387,16 +384,20 @@ static void draw_middle_object()
     glCullFace(GL_BACK);
     glRotatef(p, 0, 1, 0);
     glScalef(1, 1, 1);
-    float r = bx;
-    float g = by;
-    float b = bz;
+    float r = -bx;
+    float g = -by;
+    float b = -bz;
+
+    glTranslatef(-8, -5, -8);
+    glScalef(0.5, 2.5, 0.5);
+
     /* Crtamo objekat strip po strip */
-    for (u = 0; u < pi; u += pi / 30) {
+    for (u = 0; u < pi; u += pi / 20) {
         glBegin(GL_TRIANGLE_STRIP);
-        for (v = 0; v <= pi*2 + eps; v += pi / 30) {
-            glColor3f(-1*r, -1*b, -1*g);
+        for (v = 0; v <= pi*2 + eps; v += pi / 10) {
+            glColor3f(r, g, b);
             set_normal_and_vertex(u, v);
-            glColor3f(-1*r, -1*b, -1*g);
+            glColor3f(r, g, b);
             set_normal_and_vertex(u + pi / 30, v);
         }
         glEnd();
@@ -428,7 +429,6 @@ static void draw_walls(){
 
     /* Iscrtavanje levog zida */
     glBindTexture(GL_TEXTURE_2D, names[0]);
-    //glColor3f(0.2, 0.2, 0.2);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glBegin(GL_POLYGON);
         glNormal3f(1, 0, 0);
@@ -468,7 +468,6 @@ static void draw_walls(){
     /* Iscrtavanje vrata na zadnjem zidu */
     glBindTexture(GL_TEXTURE_2D, names[2]);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-   
     glBegin(GL_POLYGON);
         glNormal3f(0, 0, 1);
         
@@ -484,9 +483,9 @@ static void draw_walls(){
         glTexCoord2f(0, 1);
         glVertex3f(-0.7, 2, -8);
     glEnd();
+
     /* Iscrtavanje desnog zida */
     glBindTexture(GL_TEXTURE_2D, names[0]);
-    //glColor3f(0.4, 0.4, 0.4);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glBegin(GL_POLYGON);
         glNormal3f(-1, 0, 0);
@@ -544,57 +543,39 @@ static void draw_walls(){
     
     /* Iskljucujemo aktivnu teksturu */
     glBindTexture(GL_TEXTURE_2D, 0);
-
 }
 
-/* TODO uraditi t parametrizaciju sa brzinom i ispaljivanjem */
 static void paintball(){
-
-    /* Iscrtavanje linija koji predstavlja vektor pravca pogleda */
-    /*    
     glPushMatrix();
-        glDisable(GL_LINE_STIPPLE);
-        glColor3f(1, 1, 0);
-        glBegin(GL_LINES);
-            glVertex3f(x, y, z);
-            glVertex3f(x+kx*5, y+ky*5, z+kz*5);
-        glEnd();
-        glEnable(GL_LINE_STIPPLE);
-    glPopMatrix(); */
-
-    glPushMatrix();
-        glColor3f(-1*kx, -1*kz, -1*ky);
-        /* kx, ky, kz je već normiran, tako da je on vektor pravca metka */
-        x_ball = x_ball+t*bx;
-        y_ball = y_ball+0.9f+t*by; // ovde 0.9 posteriori, da ne puca iz noge, a ni iz glave! 
-        z_ball = z_ball+t*bz;
-        
-        //printf("bx: %f, by: %f, bz: %f\n", bx, by, bz);
-
+        glColor3f(-kx, -ky, -kz);
+        x_ball = x_ball+t*bx*6;
+        // ovde 0.9 posteriori, da ne puca iz noge, a ni iz glave! 
+        y_ball = y_ball+0.9f+t*by*6; 
+        z_ball = z_ball+t*bz*6;
+               
         glTranslatef(x_ball, y_ball, z_ball);
-        glutSolidSphere(0.08f, 30, 30);
-
-        if(z_ball <= 1.5f && z_ball >= -1.5f && x_ball <=1.5f && x_ball >= -1.5f)
-            printf("Pogodila loptica u sferu\n");
-       // printf("x_ball: %f\t y_ball: %f\t z_ball: %f\n", x_ball, y_ball, z_ball);
+        glutSolidSphere(0.05f, 30, 30);
     glPopMatrix();
 }
-
 
 static void on_keyboard(unsigned char key, int x, int y){
     (void)x;
     (void)y;
+    float fraction = 0.11f;
     switch(key){
         /* Izlaz iz programa za ESC = 27 */ 
         case 27:
             exit(0);
+            break;
+        case 'k':  
+            glDisable(GL_CLIP_PLANE0);
             break;
 
         /* Pokrece se rotiranje sfere */
         case 'g':
         case 'G':
             if(!timer_active){
-                glutTimerFunc(50, on_timer, TIMER_ID_SPHERE);
+                glutTimerFunc(30, on_timer, TIMER_ID_SPHERE);
                 timer_active = 1;
             }
             break;
@@ -604,6 +585,7 @@ static void on_keyboard(unsigned char key, int x, int y){
         case 'H':
             timer_active = 0;
             break;
+
         case 'f':
         case 'F':
             screen_size();
@@ -616,13 +598,39 @@ static void on_keyboard(unsigned char key, int x, int y){
                 by = ky;
                 bz = kz;
                 t = 0.0f;
-                glutTimerFunc(10, moving_ball, TIMER_ID_BALL);
+                glutTimerFunc(30, moving_ball, TIMER_ID_BALL);
                 move_ball = !move_ball; 
             }
             break;
+
+        case 'w':
+        case 'W':
+            x += kx * fraction;
+            z += kz * fraction;
+            break;
+        case 's':
+        case 'S':
+            x -= kx * fraction;
+            z -= kz * fraction;
+            break;
+        case 'a':
+        case 'A':
+            angleX = angleX;
+            angleY -= 4.0f;
+            kx = cos(pi/180.0f*angleX*0.5)*sin(pi/180.0f*angleY*0.5);
+            ky = -sin(pi/180.0f*angleX*0.5);
+            kz = -cos(pi/180.0f*angleX*0.5)*cos(pi/180.0f*angleY*0.5);
+            break;
+        case 'd':
+        case 'D':
+            angleX = angleX;
+            angleY += 4.0f; 
+            kx = cos(pi/180.0f*angleX*0.5)*sin(pi/180.0f*angleY*0.5);
+            ky = -sin(pi/180.0f*angleX*0.5);
+            kz = -cos(pi/180.0f*angleX*0.5)*cos(pi/180.0f*angleY*0.5); 
+            break;
         
         /* 32 je space, ako zatreba */    
-
         default:
             break;
     }
@@ -633,57 +641,49 @@ static void on_special_keys(int key, int xx, int yy){
     (void)yy;
     
     /* Definise brzinu pomeraja (u mom slucaju kamere)*/    
-    float fraction = 0.1f;
+    float fraction = 0.11f;
     
     switch(key){
     case GLUT_KEY_LEFT:
         if (x > 7.9)
-            x -= 0.005;
+            x -= 0.05;
         else if (z < -7.9)
-           z += 0.05;
+            z += 0.05;
         else if (z > 7.9)
-           z -= 0.05;
+            z -= 0.05;
         else if (x < -7.9)
-           x += 0.05;
+            x += 0.05;
+        
         else {
             x += kz * fraction;
             z -= kx * fraction;
         }
-        /*angleX = angleX;
-        angleY -= 4.0f;
-        kx = cos(pi/180.0f*angleX*0.2)*sin(pi/180.0f*angleY*0.2);
-        ky = -sin(pi/180.0f*angleX*0.2);
-        kz = -cos(pi/180.0f*angleX*0.2)*cos(pi/180.0f*angleY*0.2);*/
         break;
     case GLUT_KEY_RIGHT:
         if (x > 7.9)
-            x -= 0.005;
+            x -= 0.05;
         else if (z < -7.9)
-           z += 0.05;
+            z += 0.05;
         else if (z > 7.9)
-           z -= 0.05;
+            z -= 0.05;
         else if (x < -7.9)
-           x += 0.05;
+            x += 0.05;
+        
         else {
             x -= kz * fraction;
             z += kx * fraction;
         }
-       /* angleX = angleX;
-        angleY += 4.0f; 
-        kx = cos(pi/180.0f*angleX*0.2)*sin(pi/180.0f*angleY*0.2);
-        ky = -sin(pi/180.0f*angleX*0.2);
-        kz = -cos(pi/180.0f*angleX*0.2)*cos(pi/180.0f*angleY*0.2); */
-           break;
+        break;
     case GLUT_KEY_UP:
-        //printf("Kamera gleda u %g %g %g\n", kx, ky, kz);
         if (x > 7.9)
-            x -= 0.005;
+            x -= 0.05;
         else if (z < -7.9)
-           z += 0.05;
+            z += 0.05;
         else if (z > 7.9)
-           z -= 0.05;
+            z -= 0.05;
         else if (x < -7.9)
-           x += 0.05;
+            x += 0.05;
+        
         else{
            x += kx * fraction;
            z += kz * fraction;
@@ -691,13 +691,14 @@ static void on_special_keys(int key, int xx, int yy){
         break;
     case GLUT_KEY_DOWN:
         if (x < -7.9)
-           x += 0.05;
+            x += 0.05;
         else if( z > 7.9)
-           z -= 0.05;
+            z -= 0.05;
         else if (z < -7.9)
-           z += 0.05;
+            z += 0.05;
         else if (x > 7.9)
-           x -= 0.05;
+            x -= 0.05;  
+      
         else{
            x -= kx * fraction;
            z -= kz * fraction;
@@ -714,14 +715,13 @@ static void on_mouse(int button, int state, int x, int y){
     switch(button){
         case GLUT_LEFT_BUTTON:
             if(state == GLUT_DOWN){
-              //  glutSetCursor(GLUT_CURSOR_LEFT_RIGHT);
                 if(!move_ball){                
                     float norma = sqrt(kx*kx+ky*ky+kz*kz);
                     bx = kx/norma;
                     by = ky/norma;
                     bz = kz/norma;
                     t = 0;
-                    glutTimerFunc(10, moving_ball, TIMER_ID_BALL);
+                    glutTimerFunc(30, moving_ball, TIMER_ID_BALL);
                     move_ball = 1; 
                 }
             }     
@@ -730,8 +730,6 @@ static void on_mouse(int button, int state, int x, int y){
         case GLUT_RIGHT_BUTTON:
             if(state == GLUT_DOWN){
                 t = 0;
-            //printf("Pritisnut je desni klik\n"); 
-           //     glutSetCursor(GLUT_CURSOR_CROSSHAIR);
             }
             break;
         default:
@@ -739,50 +737,46 @@ static void on_mouse(int button, int state, int x, int y){
     }
 }
 
+
 /* Osetljivost misa, da ne leti po ekranu */
-float sensitivity = 0.2f;
-/* Pozicija misa */
+float sensitivity = 0.35f;
+/* Pozicija prethodnih koordinata misa na ekranu */
 GLfloat mouse_x; 
 GLfloat mouse_y;
 
 static void on_mouse_motion(int x, int y){    
     if( x > window_width-5.0f){
         if(!desno){
-            glutSetCursor(GLUT_CURSOR_SPRAY);
-            glutTimerFunc(15, on_right, TIMER_ID_DESNO);
+            glutWarpPointer(window_width/2, window_height/2);
+            glutTimerFunc(30, on_right, TIMER_ID_DESNO);
             desno = 1;
         }
     }
     else if (x < 5.0f){
-        glutSetCursor(GLUT_CURSOR_SPRAY);
         if(!levo){
-            glutTimerFunc(15, on_left, TIMER_ID_LEVO);
+            glutWarpPointer(window_width/2, window_height/2);
+            glutTimerFunc(30, on_left, TIMER_ID_LEVO);
             levo = 1;
         }
     }
     else if (y > window_height-5.0f){
-        glutSetCursor(GLUT_CURSOR_SPRAY);
         if(!dole){
-            glutTimerFunc(15, on_bottom, TIMER_ID_DOLE);
+            glutWarpPointer(window_width/2, window_height/2);
+            glutTimerFunc(30, on_bottom, TIMER_ID_DOLE);
             dole = 1;
         }
     }
-    else if (y < 5.0f){
-        glutSetCursor(GLUT_CURSOR_SPRAY);
+    else if (y < 5.0f){ 
         if(!gore){
-            glutTimerFunc(15, on_top, TIMER_ID_GORE);
+            glutWarpPointer(window_width/2, window_height/2);
+            glutTimerFunc(30, on_top, TIMER_ID_GORE);
             gore = 1;
         }
     }
     else{
         glutSetCursor(GLUT_CURSOR_NONE);
-        desno = 0;
-        levo = 0;
-        gore = 0;
-        dole = 0;
-        
-        glutSetCursor(GLUT_CURSOR_NONE); //CROSSHAIR
-          
+        desno = levo = gore = dole = 0;
+
         GLfloat deltaX = 0;
         GLfloat deltaY = 0;   
         
@@ -806,6 +800,7 @@ static void on_mouse_motion(int x, int y){
         if (deltaY > 6.0f){
             deltaY = 6.0f;
         }    
+
         angleY += deltaX;
         angleX += deltaY;
         
@@ -828,7 +823,7 @@ static void update(){
         angleX = -89.0*1/sensitivity;
     } 
                     
-    /* u radijane prebacimo uglove i radimo sa sfernim koordinatama */ 
+    /* U radijane prebacim uglove i radim sa sfernim koordinatama */ 
     kx = cos(pi/180.0f*angleX*sensitivity)*sin(pi/180.0f*angleY*sensitivity);
     ky = -sin(pi/180.0f*angleX*sensitivity);
     kz = -cos(pi/180.0f*angleX*sensitivity)*cos(pi/180.0f*angleY*sensitivity);    
@@ -848,7 +843,7 @@ static void on_timer(int value){
 
     /* Po potrebi se ponovo postavlja tajmer. */
     if (timer_active)
-        glutTimerFunc(50, on_timer, TIMER_ID_SPHERE);
+        glutTimerFunc(30, on_timer, TIMER_ID_SPHERE);
 }
 
 static void on_right(int value){
@@ -856,13 +851,13 @@ static void on_right(int value){
     if (value != TIMER_ID_DESNO)
         return;
         
-    angleY += 2.0f;   
+    angleY += 4.0f;   
     
     update();
     glutPostRedisplay();
     /* Po potrebi se ponovo postavlja tajmer. */
     if (desno)
-        glutTimerFunc(10, on_right, value);    
+        glutTimerFunc(30, on_right, value);    
         
 }
 static void on_left(int value){
@@ -870,13 +865,13 @@ static void on_left(int value){
     if (value != TIMER_ID_LEVO)
         return;
       
-    angleY -= 2.0f;
+    angleY -= 4.0f;
         
     update();
     glutPostRedisplay();
     /* Po potrebi se ponovo postavlja tajmer. */
     if (levo)
-        glutTimerFunc(10, on_left, value);
+        glutTimerFunc(30, on_left, value);
 }
 
 static void on_bottom(int value){
@@ -884,13 +879,13 @@ static void on_bottom(int value){
     if (value != TIMER_ID_DOLE)
         return;
         
-    angleX += 1.0f;
+    angleX += 2.0f;
     
     update();
     glutPostRedisplay();
     /* Po potrebi se ponovo postavlja tajmer. */
     if (dole)
-        glutTimerFunc(10, on_bottom, value);
+        glutTimerFunc(30, on_bottom, value);
 }
 
 static void on_top(int value){
@@ -898,35 +893,38 @@ static void on_top(int value){
     if (value != TIMER_ID_GORE)
         return;
       
-    angleX -= 1.0f;
+    angleX -= 2.0f;
     
     update();
     glutPostRedisplay();
     /* Po potrebi se ponovo postavlja tajmer. */
     if (gore)
-        glutTimerFunc(10, on_top, value);
+        glutTimerFunc(30, on_top, value);
 }
 
 static void moving_ball(int value){
     if (value != TIMER_ID_BALL)
         return;
 
-    if(x_ball > 8.0f || x_ball < -8.0f || y_ball > 5.0f || y_ball < 0.0f || z_ball > 8.0f || z_ball < -8.0f){
+    /* Ako je loptica izasla iz sobe */
+    if(x_ball > 8.0f || x_ball < -8.0f || 
+       y_ball > 5.0f || y_ball < 0.0f  || 
+       z_ball > 8.0f || z_ball < -8.0f){
         move_ball = 0;
         t = 0;
         return;        
     }
-    else if (x_ball <= -7.9f && x_ball >= -8.0f && y_ball <= 3 && y_ball >= 1 && z_ball <= 4 && z_ball >= 1){
+    /* Ako je loptica pogodila tablu na levom zidu */
+    else if (x_ball <= -7.3f && y_ball <= 3 && y_ball >= 1 && z_ball <= 4 && z_ball >= 1){
         r_table = bx;
         g_table = by;
         b_table = bz;
     } 
 
     t += .2f;
-//    glutPostRedisplay();
 
     if (move_ball)
-        glutTimerFunc(10, moving_ball, value);
+        glutTimerFunc(30, moving_ball, value);
 }
 
 void screen_size() {
@@ -935,7 +933,7 @@ void screen_size() {
         fullscreen = 1;
     }
     else {
-        glutReshapeWindow(1000, 600);
+        glutReshapeWindow(1200, 600);
         fullscreen = 0;
     }
 }
