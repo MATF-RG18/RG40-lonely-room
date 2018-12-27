@@ -1,13 +1,13 @@
 PROGRAM    = lonelyroom
-CC	       = gcc
-CFLAGS     = -Wextra -g -std=c99 -Wall -I/usr/X11R6/include -I/usr/pkg/include
+CC	   = gcc
+CFLAGS     = -g -Wall -I/usr/X11R6/include -I/usr/pkg/include
 LDLIBS     = -lGL -lGLU -lglut -lm
 
-$(PROGRAM): lonelyroom.o image.o ortho.o axes.o light.o
+$(PROGRAM): lonelyroom.o image.o ortho.o axes.o light.o 
 	$(CC) $(CFLAGS) -o $(PROGRAM) image.o lonelyroom.o ortho.o axes.o light.o $(LDLIBS)
 
-lonelyroom.o: sources/lonelyroom.c
-	$(CC) $(CFLAGS) -c sources/lonelyroom.c $(LDLIBS)
+lonelyroom.o: sources/lonelyroom.c sources/lonelyroom.h
+	$(CC) $(CFLAGS) -c sources/lonelyroom.c -o lonelyroom.o $(LDLIBS)
 
 image.o: sources/image.c
 	$(CC) $(CFLAGS) -c sources/image.c $(LDLIBS)
@@ -20,7 +20,8 @@ axes.o: sources/axes.c sources/axes.h
 
 light.o: sources/light.c sources/light.h
 	$(CC) $(CFLAGS) -c sources/light.c -o light.o $(LDLIBS)
-
+	
+	
 .PHONY: clean 
 
 clean: 

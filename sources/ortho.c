@@ -7,7 +7,8 @@
 */
 void draw_name(){
     int current_width = glutGet(GLUT_WINDOW_WIDTH);  
-    int current_height = glutGet(GLUT_WINDOW_HEIGHT);  
+    int current_height = glutGet(GLUT_WINDOW_HEIGHT); 
+ 
     glMatrixMode(GL_PROJECTION); 
     glPushMatrix();  
         glLoadIdentity();
@@ -33,7 +34,6 @@ void draw_name(){
         glPopMatrix(); 
         glMatrixMode(GL_MODELVIEW); 
     glPopMatrix(); 
-    glutPostRedisplay();
 }
 
 /* Crtanje pokazivača pravca kamere */
