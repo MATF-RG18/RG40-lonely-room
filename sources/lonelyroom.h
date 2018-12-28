@@ -84,10 +84,16 @@ int light_off = 0;
 
 /* Pogodak slova R */
 int pogodila_r = 0;
-/* Insikatori za slovo R */
-float r_slova = 1;
-float g_slova = 1;
-float b_slova = 1;
+/* Indikatori za slovo R */
+float r_slovaR = 1;
+float g_slovaR = 1;
+float b_slovaR = 1;
+/* Pogodak slova G */
+int pogodila_g = 0;
+/* Indikatori za slovo G */
+float r_slovaG = 1;
+float g_slovaG = 1;
+float b_slovaG = 1;
 
 /* OpenGL inicijalizacija */
 static void init(void); 

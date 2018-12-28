@@ -215,7 +215,8 @@ static void on_display(void){
 
     /* Pozivanje funkcija za iscrtavanje */
     if(light_off)
-        glEnable(GL_DEPTH_TEST);
+        glClearColor(0, 0, 0, 0);
+       // glEnable(GL_DEPTH_TEST);
     else
         glDisable(GL_DEPTH_TEST);   
     
@@ -384,8 +385,8 @@ void draw_walls(){
     /* Iskljucujemo aktivnu teksturu */
     glBindTexture(GL_TEXTURE_2D, 0);
     if(pogodila_r)
-        glColor3f(r_slova, g_slova, b_slova);
-     
+        glColor3f(r_slovaR, g_slovaR, b_slovaR);
+
     glBegin(GL_POLYGON);
         glVertex3f(-7, 0.5, -8);
         glVertex3f(-6.5, 0.5, -8);
@@ -412,6 +413,10 @@ void draw_walls(){
     glEnd();
 
     /* G */
+    if(pogodila_g)
+        glColor3f(r_slovaG, g_slovaG, b_slovaG);
+    else
+        glColor3f(1, 1, 1);
     glBegin(GL_POLYGON);
         glVertex3f(-4, 0.5, -8);
         glVertex3f(-3.5, 0.5, -8);
@@ -871,12 +876,23 @@ void moving_ball(int value){
         b_table = 1/bz;
     } 
     /* Ako je loptica pogodila R */
-    else if ((z_ball <= -7.3 && x_ball >= -7 && x_ball <=-6.5 && y_ball <= 4 && y_ball >= 0.5) || (z_ball <= -7.3 && x_ball >= -6.5 && x_ball <=-5 && y_ball <= 4 && y_ball >= 3.5)){
-        printf("Pogodila je R\n");
+    else if ((z_ball <= -7.3 && x_ball >= -7.2 && x_ball <=-6.3 && y_ball <= 4.2 && y_ball >= 0.3) 
+     || (z_ball <= -7.3 && x_ball >= -6.3 && x_ball <=-5.2 && y_ball <= 4.2 && y_ball >= 3.3)
+     || (z_ball <= -7.3 && x_ball >= -6.3 && x_ball <=-5.2 && y_ball <= 2.7 && y_ball >= 1.8)
+     || (z_ball <= -7.3 && x_ball >= -5.2 && x_ball <=-4.3 && y_ball <= 4.2 && y_ball >= 1.8)){
         pogodila_r = 1;
-        r_slova = -1/bx;
-        g_slova = -1/by;
-        b_slova = -1/bz;
+        r_slovaR = -1/bx;
+        g_slovaR = -1/by;
+        b_slovaR = -1/bz;
+    }
+    /* Ako je loptica pogodila G */
+    else if ((z_ball <= -7.3 && x_ball >= -4.2 && x_ball <=-3.3 && y_ball <= 4.2 && y_ball >= 0.3) 
+        || (z_ball <= -7.3 && x_ball >= -3.7 && x_ball <=-1.6 && y_ball <= 4.2 && y_ball >= 3.3)
+     || (z_ball <= -7.3 && x_ball >= -2.5 && x_ball <=-1.6 && y_ball <= 4.2 && y_ball >= 2.8)){
+        pogodila_g = 1;
+        r_slovaG = -1/bx;
+        g_slovaG = -1/by;
+        b_slovaG = -1/bz;
     }
         
 
