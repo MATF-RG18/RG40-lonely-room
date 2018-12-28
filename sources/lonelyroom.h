@@ -12,10 +12,14 @@
 
 /* Tajmeri za animacije */
 #define TIMER_ID_SPHERE 0
+
+/* Tajmer za rotiranje kamere na ivici */
 #define TIMER_ID_LEVO 1
 #define TIMER_ID_DESNO 2
 #define TIMER_ID_GORE 3
 #define TIMER_ID_DOLE 4
+
+/* Tajmer za kretanje loptice */
 #define TIMER_ID_BALL 5
 
 /* Identifikatori kad je mis blizu ivica */
@@ -66,6 +70,9 @@ float z_ball;
 float bx = 0.0f;
 float by = 0.0f;
 float bz = -1.0f;
+/* brzina kuglice */
+float v = 7.0f; 
+
 /* Indikatori za boje */
 float r_table = 1;
 float g_table = 1;
@@ -84,13 +91,13 @@ int light_off = 0;
 
 /* Pogodak slova R */
 int pogodila_r = 0;
-/* Indikatori za slovo R */
+/* Boja za slovo R */
 float r_slovaR = 1;
 float g_slovaR = 1;
 float b_slovaR = 1;
 /* Pogodak slova G */
 int pogodila_g = 0;
-/* Indikatori za slovo G */
+/* B za slovo G */
 float r_slovaG = 1;
 float g_slovaG = 1;
 float b_slovaG = 1;
@@ -114,7 +121,7 @@ void on_top(int value);
 void moving_ball(int value);
 
 /* Update za kameru */
-void update();
+void update_camera();
 
 /* Deklaracija lokalnih funkcija za objekte */
 void draw_walls();

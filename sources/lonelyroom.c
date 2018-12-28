@@ -214,9 +214,20 @@ static void on_display(void){
     z_ball = z;
 
     /* Pozivanje funkcija za iscrtavanje */
-    if(light_off)
-        glClearColor(0, 0, 0, 0);
+    if(light_off){
+        glMatrixMode(GL_PROJECTION); 
+        glPushMatrix();  
+            glLoadIdentity();
+            glMatrixMode(GL_MODELVIEW); 
+            glPushMatrix(); 
+                glLoadIdentity();
+                glClearColor(0, 0, 0, 0);
+            glMatrixMode(GL_PROJECTION); 
+        glPopMatrix(); 
+        glMatrixMode(GL_MODELVIEW); 
+        glPopMatrix(); 
        // glEnable(GL_DEPTH_TEST);
+    }
     else
         glDisable(GL_DEPTH_TEST);   
     
@@ -519,10 +530,11 @@ void draw_walls(){
 void paintball(){
     glPushMatrix();
         glColor3f(-1/kx, -1/ky, -1/kz);
-        x_ball = x_ball+t*bx*6;
+        
+        x_ball = x_ball+t*bx*v;
         // ovde 0.9 posteriori, da ne puca iz noge, a ni iz glave! 
-        y_ball = y_ball+0.9f+t*by*6; 
-        z_ball = z_ball+t*bz*6;
+        y_ball = y_ball+0.9f+t*by*v; 
+        z_ball = z_ball+t*bz*v;
                
         glTranslatef(x_ball, y_ball, z_ball);
         glutSolidSphere(0.05f, 30, 30);
@@ -757,11 +769,11 @@ static void on_mouse_motion(int x, int y){
         angleY += deltaX;
         angleX += deltaY;
         
-        update();
+        update_camera();
     }    
 }
 
-void update(){
+void update_camera(){
     /* Brinem o tome da uglovi budu u svojim granicama */
     if(angleY > 360.0*1/sensitivity){
         angleY -= 360.0*1/sensitivity;
@@ -808,7 +820,7 @@ void on_right(int value){
         
     angleY += 4.0f;   
     
-    update();
+    update_camera();
     glutPostRedisplay();
     /* Po potrebi se ponovo postavlja tajmer. */
     if (desno)
@@ -822,7 +834,7 @@ void on_left(int value){
       
     angleY -= 4.0f;
         
-    update();
+    update_camera();
     glutPostRedisplay();
     /* Po potrebi se ponovo postavlja tajmer. */
     if (levo)
@@ -836,7 +848,7 @@ void on_bottom(int value){
         
     angleX += 3.0f;
     
-    update();
+    update_camera();
     glutPostRedisplay();
     /* Po potrebi se ponovo postavlja tajmer. */
     if (dole)
@@ -850,7 +862,7 @@ void on_top(int value){
       
     angleX -= 3.0f;
     
-    update();
+    update_camera();
     glutPostRedisplay();
     /* Po potrebi se ponovo postavlja tajmer. */
     if (gore)
@@ -864,7 +876,7 @@ void moving_ball(int value){
     /* Ako je loptica izasla iz sobe */
     if(x_ball > 8.0f || x_ball < -8.5f || 
        y_ball > 5.0f || y_ball < 0.0f  || 
-       z_ball > 8.0f || z_ball < -8.0f){
+       z_ball > 8.5f || z_ball < -8.5f){
         move_ball = 0;
         t = 0;
         return;        
@@ -886,8 +898,8 @@ void moving_ball(int value){
         b_slovaR = -1/bz;
     }
     /* Ako je loptica pogodila G */
-    else if ((z_ball <= -7.3 && x_ball >= -4.2 && x_ball <=-3.3 && y_ball <= 4.2 && y_ball >= 0.3) 
-        || (z_ball <= -7.3 && x_ball >= -3.7 && x_ball <=-1.6 && y_ball <= 4.2 && y_ball >= 3.3)
+    else if ((z_ball <= -7.3 && x_ball >= -4.3 && x_ball <=-3.2 && y_ball <= 4.2 && y_ball >= 0.3) 
+        || (z_ball <= -7.3 && x_ball >= -3.6 && x_ball <=-1.5 && y_ball <= 4.2 && y_ball >= 3.3)
      || (z_ball <= -7.3 && x_ball >= -2.5 && x_ball <=-1.6 && y_ball <= 4.2 && y_ball >= 2.8)){
         pogodila_g = 1;
         r_slovaG = -1/bx;
