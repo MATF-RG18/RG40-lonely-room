@@ -6,9 +6,13 @@
 #define FILENAME1 "floor.bmp"
 #define FILENAME2 "door.bmp"
 #define FILENAME3 "ceiling.bmp"
+#define FILENAME4 "fireplace.bmp"
 
 /* Crtanje sfere u sobi */
 #define DRAW_SPHERE
+
+/* Definisanje objekta za poziv funkcije gluCylinder */
+GLUquadric *quad;
 
 /* Tajmeri za animacije */
 #define TIMER_ID_SPHERE 0
@@ -21,6 +25,15 @@
 
 /* Tajmer za kretanje loptice */
 #define TIMER_ID_BALL 5
+
+/* Tajmer za udaljavanje scene */
+#define TIMER_DISAPPEAR 6
+
+/* identifikator udaljavanja scene */
+int disappear = 0;
+
+/* parametar udaljavanja */
+int udaljavanje = 0;
 
 /* Identifikatori kad je mis blizu ivica */
 int levo = 0;
@@ -42,7 +55,7 @@ GLfloat mouse_y;
 static int timer_active;
 
 /* Identifikatori tekstura */
-static GLuint names[4];
+static GLuint names[5];
 
 /* Ugao rotacije oko y ose, za pravac kamere*/
 float angleY = 0.0;
@@ -73,18 +86,14 @@ float bz = -1.0f;
 /* brzina kuglice */
 float v = 7.0f; 
 
-/* Indikatori za boje */
-float r_table = 1;
-float g_table = 1;
-float b_table = 1;
-/* Indikator bojenja table */
-int color_table = 0;
-
 /* Dimenzije prozora */
 static int window_width, window_height;
 
 /* Parametar za rotaciju sfere na sredini */
 int p = 0;
+
+/* Identifikator crtanja kamina na tabli */
+int nacrtaj_kamin = 0;
 
 /* Ugasi svetlo u prostoriji */
 int light_off = 0;
@@ -119,6 +128,7 @@ void on_left(int value);
 void on_bottom(int value);
 void on_top(int value);
 void moving_ball(int value);
+void on_disappear(int value);
 
 /* Update za kameru */
 void update_camera();

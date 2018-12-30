@@ -12,9 +12,12 @@
  * 3. Ideja koda za centriran krstić i ortogonalnu projekciju primećena kod kolege
  *    sa projektom RG42-Tank-na-autoputu. Hvala! :) 
  * 4. Kod za sferu shvaćen, a zatim i preuzet sa vežbi.
+ * 5.  
+ * 
  */ 
 
 #include <stdio.h>
+#include <unistd.h>
 #include <GL/glut.h>
 #include <GL/gl.h>
 #include <math.h>
@@ -105,7 +108,7 @@ static void init(void){
     image_read(image, FILENAME0);
 
     /* Generisu se identifikatori tekstura */
-    glGenTextures(4, names);
+    glGenTextures(5, names);
 
     glBindTexture(GL_TEXTURE_2D, names[0]);
     glTexParameteri(GL_TEXTURE_2D,
@@ -166,7 +169,23 @@ static void init(void){
                     GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
                  image->width, image->height, 0,
-                 GL_RGB, GL_UNSIGNED_BYTE, image->pixels);                 
+                 GL_RGB, GL_UNSIGNED_BYTE, image->pixels); 
+    
+     /* Kreira se peta tekstura */
+    image_read(image, FILENAME4);
+    
+    glBindTexture(GL_TEXTURE_2D, names[4]);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+                 image->width, image->height, 0,
+                 GL_RGB, GL_UNSIGNED_BYTE, image->pixels);  
 
     /* Iskljucujemo aktivnu teksturu */
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -214,28 +233,23 @@ static void on_display(void){
     z_ball = z;
 
     /* Pozivanje funkcija za iscrtavanje */
-    if(light_off){
-        glMatrixMode(GL_PROJECTION); 
-        glPushMatrix();  
-            glLoadIdentity();
-            glMatrixMode(GL_MODELVIEW); 
-            glPushMatrix(); 
-                glLoadIdentity();
-                glClearColor(0, 0, 0, 0);
-            glMatrixMode(GL_PROJECTION); 
-        glPopMatrix(); 
-        glMatrixMode(GL_MODELVIEW); 
-        glPopMatrix(); 
-       // glEnable(GL_DEPTH_TEST);
+    if(pogodila_g && pogodila_r){
+        if(!disappear){
+            disappear = 1;
+            glutTimerFunc(30, on_disappear, TIMER_DISAPPEAR);
+        }        
     }
-    else
-        glDisable(GL_DEPTH_TEST);   
+    
+    glDisable(GL_DEPTH_TEST);   
+    
+    /* Efekat usisavanja na kraju */
+    glTranslatef(0, 0, udaljavanje);
     
     draw_walls();
     draw_color_table();
     draw_middle_object();
     paintball();
-    
+        
     /* Crtanje centralnog pokazivaca pravca kamere */
     glDisable(GL_LINE_STIPPLE);
     draw_cross();
@@ -271,14 +285,35 @@ void set_normal_and_vertex(float u, float v)
 
 void draw_color_table() {
     glPushMatrix();   
-        glColor3f(-r_table, -g_table , -b_table);
-        glBegin(GL_QUADS);
-            glVertex3f(-8, 0, 4);    
-            glVertex3f(-8, 0, 1);
-            glVertex3f(-8, 2, 1);
-            glVertex3f(-8, 2, 4);
-        glEnd();
+        if(nacrtaj_kamin){
+            glBindTexture(GL_TEXTURE_2D, names[4]);
+                glBegin(GL_QUADS);
+                    glNormal3f(1, 0, 0);
+
+                    glTexCoord2f(1, 0);
+                    glVertex3f(-8, 0, 4);    
+                    
+                    glTexCoord2f(0, 0);
+                    glVertex3f(-8, 0, 1);
+                    
+                    glTexCoord2f(0, 1); 
+                    glVertex3f(-8, 2, 1);
+                    
+                    glTexCoord2f(1, 1);
+                    glVertex3f(-8, 2, 4);
+                glEnd();
+        }
+        else{
+                glColor3f(0, 0, 0);
+                glBegin(GL_QUADS);
+                    glVertex3f(-8, 0, 4);                        
+                    glVertex3f(-8, 0, 1);
+                    glVertex3f(-8, 2, 1);
+                    glVertex3f(-8, 2, 4);
+                glEnd();
+        }
     glPopMatrix();
+    glBindTexture(GL_TEXTURE_2D, 0);
     
     glPushMatrix();
         glDisable(GL_LIGHT0);
@@ -318,7 +353,7 @@ void draw_middle_object()
         float r = -1/bx;
         float g = -1/by;
         float b = -1/bz;
-
+    
         /* Crtamo objekat strip po strip */
         for (u = 0; u < pi; u += pi / 20) {
             glBegin(GL_TRIANGLE_STRIP);
@@ -393,7 +428,7 @@ void draw_walls(){
     glEnd();
     
     /* Lepljenje slova R i G za bojenje */
-    /* Iskljucujemo aktivnu teksturu */
+    /* Iskljucujem aktivnu teksturu */
     glBindTexture(GL_TEXTURE_2D, 0);
     if(pogodila_r)
         glColor3f(r_slovaR, g_slovaR, b_slovaR);
@@ -447,7 +482,7 @@ void draw_walls(){
         glVertex3f(-1.8, 3, -8);
     glEnd();
     
-    /* Iscrtavanje vrata na zadnjem zidu */
+    /* Iscrtavanje vrata na zadnjem zidu (prostor za kreativnu ideju u buducnosti) */
     glBindTexture(GL_TEXTURE_2D, names[2]);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glBegin(GL_POLYGON);
@@ -532,7 +567,7 @@ void paintball(){
         glColor3f(-1/kx, -1/ky, -1/kz);
         
         x_ball = x_ball+t*bx*v;
-        // ovde 0.9 posteriori, da ne puca iz noge, a ni iz glave! 
+        /* ovde 0.9 posteriori, da ne puca iz noge, a ni iz glave! */
         y_ball = y_ball+0.9f+t*by*v; 
         z_ball = z_ball+t*bz*v;
                
@@ -696,9 +731,6 @@ static void on_mouse(int button, int state, int x, int y){
         case GLUT_RIGHT_BUTTON:
             if(state == GLUT_DOWN){
                 t = 0;
-                r_table = 1; 
-                g_table = 1;
-                b_table = 1;
                 light_off = !light_off;
             }
             break;
@@ -708,28 +740,29 @@ static void on_mouse(int button, int state, int x, int y){
 }
 
 static void on_mouse_motion(int x, int y){    
-   if( x > window_width-5.0f){
+    /* Detektujem kad je kursor na ivici prozora */
+   if( x > window_width-2.0f){
        glutWarpPointer(window_width/2, window_height/2);
        if(!desno){
            glutTimerFunc(30, on_right, TIMER_ID_DESNO);
            desno = 1;
         }
     }
-    else if (x < 5.0f){
+    else if (x < 2.0f){
         glutWarpPointer(window_width/2, window_height/2);        
         if(!levo){
             glutTimerFunc(30, on_left, TIMER_ID_LEVO);
             levo = 1;
         }
     }
-    else if (y > window_height-5.0f){
+    else if (y > window_height-2.0f){
         glutWarpPointer(window_width/2, window_height/2);        
         if(!dole){
             glutTimerFunc(30, on_bottom, TIMER_ID_DOLE);
             dole = 1;
         }
     }
-    else if (y < 5.0f){ 
+    else if (y < 2.0f){ 
         glutWarpPointer(window_width/2, window_height/2);
         if(!gore){
             glutTimerFunc(30, on_top, TIMER_ID_GORE);
@@ -737,7 +770,10 @@ static void on_mouse_motion(int x, int y){
         }
     }
     else {
+        /* Iskljucim kursor */
         glutSetCursor(GLUT_CURSOR_NONE);
+        
+        /* Resetujem tajmere */
         desno = 0;
         levo = 0;
         gore = 0;
@@ -746,6 +782,7 @@ static void on_mouse_motion(int x, int y){
         GLfloat deltaX = 0;
         GLfloat deltaY = 0;   
         
+        /* Razlika u koordinatama */
         deltaX = x - mouse_x;
         deltaY = y - mouse_y;            
         
@@ -766,6 +803,7 @@ static void on_mouse_motion(int x, int y){
             deltaY = 6.0f;
         }    
 
+        /* Uvecam ugao pomeranja FPS */
         angleY += deltaX;
         angleX += deltaY;
         
@@ -869,11 +907,26 @@ void on_top(int value){
         glutTimerFunc(30, on_top, value);
 }
 
+void on_disappear(int value){
+    if( value != TIMER_DISAPPEAR)
+        return;
+    
+    if (udaljavanje <= -400){
+        disappear = 0;  
+        exit(0);
+    }
+
+    udaljavanje -= 2;
+    
+    if (disappear)
+        glutTimerFunc(30, on_disappear, value);
+}
+
 void moving_ball(int value){
     if (value != TIMER_ID_BALL)
         return;
 
-    /* Ako je loptica izasla iz sobe */
+    /* Ako je loptica izasla iz sobe -> nema vise loptice */
     if(x_ball > 8.0f || x_ball < -8.5f || 
        y_ball > 5.0f || y_ball < 0.0f  || 
        z_ball > 8.5f || z_ball < -8.5f){
@@ -881,13 +934,12 @@ void moving_ball(int value){
         t = 0;
         return;        
     }
-    /* Ako je loptica pogodila tablu na levom zidu */
+    /* Ako je loptica pogodila tablu/kamin na levom zidu */
     else if (x_ball <= -7.3f && y_ball <= 2 && y_ball >= -0.5 && z_ball <= 4 && z_ball >= 1){
-        r_table = 1/bx;
-        g_table = 1/by;
-        b_table = 1/bz;
+        nacrtaj_kamin = 1;
+        
     } 
-    /* Ako je loptica pogodila R */
+    /* Ako je loptica pogodila slovo R */
     else if ((z_ball <= -7.3 && x_ball >= -7.2 && x_ball <=-6.3 && y_ball <= 4.2 && y_ball >= 0.3) 
      || (z_ball <= -7.3 && x_ball >= -6.3 && x_ball <=-5.2 && y_ball <= 4.2 && y_ball >= 3.3)
      || (z_ball <= -7.3 && x_ball >= -6.3 && x_ball <=-5.2 && y_ball <= 2.7 && y_ball >= 1.8)
@@ -897,7 +949,7 @@ void moving_ball(int value){
         g_slovaR = -1/by;
         b_slovaR = -1/bz;
     }
-    /* Ako je loptica pogodila G */
+    /* Ako je loptica pogodila slovo G */
     else if ((z_ball <= -7.3 && x_ball >= -4.3 && x_ball <=-3.2 && y_ball <= 4.2 && y_ball >= 0.3) 
         || (z_ball <= -7.3 && x_ball >= -3.6 && x_ball <=-1.5 && y_ball <= 4.2 && y_ball >= 3.3)
      || (z_ball <= -7.3 && x_ball >= -2.5 && x_ball <=-1.6 && y_ball <= 4.2 && y_ball >= 2.8)){
