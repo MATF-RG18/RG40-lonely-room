@@ -2,7 +2,7 @@
 Lonely Room
 
 ### Kratak opis:
-Lonely Room je interaktivni interfejs nastao kao rezultat rada na projektu iz predmeta Računarska grafika. Glavna ideja je zasnovana na FPS (first person shooter) dizajnu korisničkog interfejsa, a sve sa ciljem da se razume osnovno funkcionisanje OpenGL programa. <br /> <br />
+Lonely Room je interaktivni interfejs nastao kao rezultat rada na projektu iz predmeta Računarska grafika. Glavna ideja je zasnovana na FPS (first person shooter) dizajnu korisničkog interfejsa, a sve sa ciljem da se razume osnovno funkcionisanje OpenGL programa. <br /> 
 
 Igranjem po sobi moguće je ispaljivati obojene kuglice - paintball. One mogu da aktiviraju paljenje kamina u sobi, kao i bojenje slova na zidu. 
 
