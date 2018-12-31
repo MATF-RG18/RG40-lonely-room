@@ -8,8 +8,8 @@ Igranjem po sobi moguće je ispaljivati obojene kuglice - paintball. One mogu da
 
 ### Pokretanje: 
 Nakon kloniranja projekta potrebno je samo izvršiti: <br />
-'make' <br />
-'./lonelyroom <br />
+`make` <br />
+`./lonelyroom` <br />
 
 ### Kontrole: 
 
