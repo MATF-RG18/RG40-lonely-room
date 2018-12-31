@@ -8,24 +8,16 @@
 #define FILENAME3 "ceiling.bmp"
 #define FILENAME4 "fireplace.bmp"
 
-/* Crtanje sfere u sobi */
-#define DRAW_SPHERE
-
-/* Definisanje objekta za poziv funkcije gluCylinder */
-GLUquadric *quad;
-
 /* Tajmeri za animacije */
 #define TIMER_ID_SPHERE 0
 
 /* Tajmer za rotiranje kamere na ivici */
-#define TIMER_ID_LEVO 1
-#define TIMER_ID_DESNO 2
-#define TIMER_ID_GORE 3
-#define TIMER_ID_DOLE 4
-
+#define TIMER_ID_LEFT 1
+#define TIMER_ID_RIGHT 2
+#define TIMER_ID_UP 3
+#define TIMER_ID_DOWN 4
 /* Tajmer za kretanje loptice */
 #define TIMER_ID_BALL 5
-
 /* Tajmer za udaljavanje scene */
 #define TIMER_DISAPPEAR 6
 
@@ -33,15 +25,15 @@ GLUquadric *quad;
 int disappear = 0;
 
 /* parametar udaljavanja */
-int udaljavanje = 0;
+int moving_away = 0;
 
 /* Identifikatori kad je mis blizu ivica */
-int levo = 0;
-int desno = 0;
-int gore = 0;
-int dole = 0;
+int left = 0;
+int right = 0;
+int up = 0;
+int down = 0;
 /* Osetljivost misa, da ne leti po ekranu */
-float sensitivity = 0.3f;
+float sensitivity = 0.4f;
 /* Pozicija prethodnih koordinata misa na ekranu */
 GLfloat mouse_x; 
 GLfloat mouse_y;
@@ -52,7 +44,7 @@ GLfloat mouse_y;
 #define eps 0.01
 
 /* Tajmer za rotaciju sfere */
-static int timer_active;
+static int timer_active = 0;
 
 /* Identifikatori tekstura */
 static GLuint names[5];
@@ -73,8 +65,8 @@ float y = 0.0f; // kretanje po podu
 float z = 4.9f; 
 
 /* Tajmer za ispucavanje kuglice */
-float t;
-static int move_ball;
+float t = 0;
+static int move_ball = 0;
 /* Pozicija obojene kuglice */
 float x_ball; 
 float y_ball; 
@@ -90,26 +82,26 @@ float v = 7.0f;
 static int window_width, window_height;
 
 /* Parametar za rotaciju sfere na sredini */
-int p = 0;
+int par_rotate = 0;
 
 /* Identifikator crtanja kamina na tabli */
-int nacrtaj_kamin = 0;
+int fireplace = 0;
 
 /* Ugasi svetlo u prostoriji */
 int light_off = 0;
 
 /* Pogodak slova R */
-int pogodila_r = 0;
+int hit_r = 0;
 /* Boja za slovo R */
-float r_slovaR = 1;
-float g_slovaR = 1;
-float b_slovaR = 1;
+float r_letterR = 1;
+float g_letterR = 1;
+float b_letterR = 1;
 /* Pogodak slova G */
-int pogodila_g = 0;
+int hit_g = 0;
 /* B za slovo G */
-float r_slovaG = 1;
-float g_slovaG = 1;
-float b_slovaG = 1;
+float r_letterG = 1;
+float g_letterG = 1;
+float b_letterG = 1;
 
 /* OpenGL inicijalizacija */
 static void init(void); 

@@ -8,10 +8,10 @@
 void init_lights()
 {
     /* Pozicija svetla (u pitanju je direkcionalno svetlo). */
-    GLfloat light_position[] = { 1, 4, 1, 0 };
+    GLfloat light_position[] = { 1, 1, 1, 0 };
 
     /* Ambijentalna boja svetla. */
-    GLfloat light_ambient[] = { 0.1, 0.1, 0.1, 1 };
+    GLfloat light_ambient[] = { 0.2, 0.2, 0.2, 1 };
 
     /* Difuzna boja svetla. */
     GLfloat light_diffuse[] = { 0.3, 0.3, 0.3, 1 };
@@ -28,7 +28,7 @@ void init_lights()
     glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
 }
 
-void set_material(int id)
+void set_material()
 {
     /* Koeficijenti ambijentalne refleksije materijala. */
     GLfloat ambient_coeffs[] = { 0.3, 0.3, 0.3, 1 };
@@ -42,26 +42,9 @@ void set_material(int id)
     /* Koeficijent glatkosti materijala. */
     GLfloat shininess = 30;
 
-    switch (id) {
-        case 0:
-            /* Difuzna komponenta se postavlja na crvenu */
-            diffuse_coeffs[0] = 1.0;
-            diffuse_coeffs[3] = 0.7;
-            break;
-        case 1:
-            /* Difuzna komponenta se postavlja na zelenu */
-            diffuse_coeffs[1] = 1.0;
-            break;
-        case 2:
-            /* Difuzna komponenta se postavlja na plavu */
-            diffuse_coeffs[2] = 1.0;
-            break;
-    }
-
     /* Podesavaju se parametri materijala. */
     glMaterialfv(GL_FRONT, GL_AMBIENT, ambient_coeffs);
     glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse_coeffs);
     glMaterialfv(GL_FRONT, GL_SPECULAR, specular_coeffs);
     glMaterialf(GL_FRONT, GL_SHININESS, shininess);
-
 }
